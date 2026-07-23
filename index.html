@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Neon Cyber Snake v6.8</title>
     
+    <!-- Firebase Module -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, get, set, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -20,33 +21,37 @@
             measurementId: "G-Z8RJ50PNH8"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getDatabase(app);
 
-        window.loadHighScoreFromFirebase = async function() {
-            try {
-                const dbRef = ref(db);
-                const snapshot = await get(child(dbRef, 'highScoreData'));
-                if (snapshot.exists()) {
-                    let val = snapshot.val();
-                    if (typeof val === 'number') return { score: val, name: "PLAYER" };
-                    if (typeof val === 'object' && val !== null) {
-                        return { score: Number(val.score) || 0, name: String(val.name || "PLAYER") };
+            window.loadHighScoreFromFirebase = async function() {
+                try {
+                    const dbRef = ref(db);
+                    const snapshot = await get(child(dbRef, 'highScoreData'));
+                    if (snapshot.exists()) {
+                        let val = snapshot.val();
+                        if (typeof val === 'number') return { score: val, name: "PLAYER" };
+                        if (typeof val === 'object' && val !== null) {
+                            return { score: Number(val.score) || 0, name: String(val.name || "PLAYER") };
+                        }
                     }
+                } catch (error) {
+                    console.error("Firebase Read Error:", error);
                 }
-            } catch (error) {
-                console.error("Firebase Error:", error);
-            }
-            return { score: 0, name: "PLAYER" };
-        };
+                return { score: 0, name: "PLAYER" };
+            };
 
-        window.saveHighScoreToFirebase = async function(scoreData) {
-            try {
-                await set(ref(db, 'highScoreData'), scoreData);
-            } catch (error) {
-                console.error("Firebase Save Error:", error);
-            }
-        };
+            window.saveHighScoreToFirebase = async function(scoreData) {
+                try {
+                    await set(ref(db, 'highScoreData'), scoreData);
+                } catch (error) {
+                    console.error("Firebase Save Error:", error);
+                }
+            };
+        } catch (e) {
+            console.error("Firebase Init Error:", e);
+        }
     </script>
 
     <style>
@@ -114,7 +119,6 @@
             padding: 6px 10px;
             cursor: pointer;
             font-size: 14px;
-            pointer-events: auto;
         }
 
         #game-area {
@@ -195,7 +199,6 @@
             border-radius: 5px;
             cursor: pointer;
             margin-top: 8px;
-            pointer-events: auto;
         }
 
         .cyber-input {
@@ -212,7 +215,6 @@
             outline: none;
             user-select: text !important;
             -webkit-user-select: text !important;
-            pointer-events: auto;
         }
 
         .setting-row {
@@ -231,7 +233,6 @@
             border-radius: 4px;
             font-family: inherit;
             font-size: 11px;
-            pointer-events: auto;
         }
     </style>
 </head>
