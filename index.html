@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Cyber Snake v6.8 - Online Firebase</title>
+    <title>Neon Cyber Snake v6.8</title>
     
-    <!-- Import Firebase SDK via CDN -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, get, set, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -30,24 +29,22 @@
                 const snapshot = await get(child(dbRef, 'highScoreData'));
                 if (snapshot.exists()) {
                     let val = snapshot.val();
-                    if (typeof val === 'number') {
-                        return { score: val, name: "PLAYER" };
+                    if (typeof val === 'number') return { score: val, name: "PLAYER" };
+                    if (typeof val === 'object' && val !== null) {
+                        return { score: Number(val.score) || 0, name: String(val.name || "PLAYER") };
                     }
-                    return { score: val.score || 0, name: val.name || "PLAYER" };
-                } else {
-                    return { score: 0, name: "PLAYER" };
                 }
             } catch (error) {
-                console.error("Gagal memuat High Score:", error);
-                return { score: 0, name: "PLAYER" };
+                console.error("Firebase Error:", error);
             }
+            return { score: 0, name: "PLAYER" };
         };
 
         window.saveHighScoreToFirebase = async function(scoreData) {
             try {
                 await set(ref(db, 'highScoreData'), scoreData);
             } catch (error) {
-                console.error("Gagal menyimpan High Score:", error);
+                console.error("Firebase Save Error:", error);
             }
         };
     </script>
@@ -78,9 +75,9 @@
             justify-content: space-between;
             align-items: center;
             padding: 0 10px;
-            background: rgba(10, 10, 25, 0.9);
+            background: rgba(10, 10, 25, 0.95);
             border-bottom: 2px solid rgba(0, 255, 255, 0.3);
-            z-index: 20;
+            z-index: 999;
             flex-shrink: 0;
         }
 
@@ -103,20 +100,21 @@
         #hi-score-box {
             border-color: #ffaa00;
             color: #ffaa00;
-            max-width: 130px;
+            max-width: 140px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
         .icon-btn {
-            background: rgba(0, 255, 255, 0.1);
+            background: rgba(0, 255, 255, 0.2);
             border: 1px solid #00ffff;
             color: #00ffff;
             border-radius: 5px;
-            padding: 4px 8px;
+            padding: 6px 10px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
+            pointer-events: auto;
         }
 
         #game-area {
@@ -155,20 +153,20 @@
         }
 
         .cyber-modal {
-            display: block;
-            position: absolute;
+            display: none;
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             width: 85%;
             max-width: 320px;
-            background: rgba(10, 10, 30, 0.95);
+            background: #0a0a1e;
             border: 2px solid #00ffff;
             border-radius: 12px;
             padding: 18px;
             text-align: center;
-            box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
-            z-index: 100;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.6);
+            z-index: 99999;
         }
 
         .modal-title {
@@ -188,51 +186,52 @@
         }
 
         .cyber-btn {
-            background: transparent;
+            background: #050510;
             color: #00ffff;
             border: 1px solid #00ffff;
-            padding: 6px 18px;
+            padding: 8px 18px;
             font-family: inherit;
             font-weight: bold;
             border-radius: 5px;
             cursor: pointer;
             margin-top: 8px;
-        }
-        .cyber-btn:active {
-            background: #00ffff;
-            color: #06060c;
+            pointer-events: auto;
         }
 
         .cyber-input {
-            background: #050510;
-            border: 1px solid #00ffff;
+            background: #000000;
+            border: 1px solid #ffaa00;
             color: #ffaa00;
-            padding: 6px 10px;
+            padding: 8px;
             border-radius: 5px;
             font-family: inherit;
-            font-size: 12px;
+            font-size: 13px;
             text-align: center;
-            width: 80%;
-            margin-bottom: 8px;
+            width: 85%;
+            margin-bottom: 10px;
             outline: none;
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            pointer-events: auto;
         }
 
         .setting-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             font-size: 11px;
         }
 
         select {
-            background: #050510;
+            background: #000000;
             color: #00ffff;
             border: 1px solid #00ffff;
-            padding: 4px;
+            padding: 6px;
             border-radius: 4px;
             font-family: inherit;
             font-size: 11px;
+            pointer-events: auto;
         }
     </style>
 </head>
@@ -240,7 +239,7 @@
 
     <div id="info-panel">
         <div class="hud-box" id="level-txt">LVL: 01</div>
-        <div class="hud-box" id="hi-score-box">HI: LOADING...</div>
+        <div class="hud-box" id="hi-score-box">HI: 0 [PLAYER]</div>
         <div class="hud-group">
             <div class="hud-box" id="skor-txt">FEED: 00/10</div>
             <button class="icon-btn" id="mute-btn">🔊</button>
@@ -250,46 +249,46 @@
     
     <div id="game-area">
         <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- MODAL UTAMA / ALERT -->
+    <div id="cyber-alert" class="cyber-modal">
+        <div id="alert-title" class="modal-title">NEON CYBER SNAKE</div>
+        <div id="alert-msg" class="modal-msg">Menghubungkan ke Database...</div>
+        <input type="text" id="player-name-input" class="cyber-input" placeholder="NAMA PEMAIN" maxlength="10" style="display:none;" />
+        <br/>
+        <button class="cyber-btn" id="alert-btn">OK</button>
+    </div>
+
+    <!-- MODAL PENGATURAN MENU -->
+    <div id="settings-modal" class="cyber-modal">
+        <div class="modal-title">PENGATURAN</div>
         
-        <!-- MODAL UTAMA / ALERT -->
-        <div id="cyber-alert" class="cyber-modal">
-            <div id="alert-title" class="modal-title">NEON CYBER SNAKE</div>
-            <div id="alert-msg" class="modal-msg">Menghubungkan ke Database...</div>
-            <input type="text" id="player-name-input" class="cyber-input" placeholder="NAMA PEMAIN" maxlength="10" style="display:none;" />
-            <br/>
-            <button class="cyber-btn" id="alert-btn" style="display:none;">OK</button>
+        <div class="setting-row">
+            <label for="volume-select">VOLUME:</label>
+            <select id="volume-select">
+                <option value="1">1.0 x</option>
+                <option value="2">2.0 x</option>
+                <option value="3" selected>3.0 x</option>
+                <option value="4">4.0 x</option>
+                <option value="5">5.0 x</option>
+            </select>
         </div>
 
-        <!-- MODAL PENGATURAN MENU -->
-        <div id="settings-modal" class="cyber-modal" style="display: none;">
-            <div class="modal-title">PENGATURAN</div>
-            
-            <div class="setting-row">
-                <label for="volume-select">VOLUME:</label>
-                <select id="volume-select">
-                    <option value="1">1.0 x</option>
-                    <option value="2">2.0 x</option>
-                    <option value="3" selected>3.0 x</option>
-                    <option value="4">4.0 x</option>
-                    <option value="5">5.0 x</option>
-                </select>
-            </div>
-
-            <div class="setting-row">
-                <label for="color-select">WARNA ULAR:</label>
-                <select id="color-select">
-                    <option value="green">GREEN</option>
-                    <option value="orange">ORANGE</option>
-                    <option value="yellow">YELLOW</option>
-                    <option value="red">RED</option>
-                    <option value="brown">BROWN</option>
-                    <option value="light blue">LIGHT BLUE</option>
-                    <option value="tosca">TOSCA</option>
-                </select>
-            </div>
-
-            <button class="cyber-btn" id="close-settings-btn">SIMPAN</button>
+        <div class="setting-row">
+            <label for="color-select">WARNA ULAR:</label>
+            <select id="color-select">
+                <option value="green">GREEN</option>
+                <option value="orange">ORANGE</option>
+                <option value="yellow">YELLOW</option>
+                <option value="red">RED</option>
+                <option value="brown">BROWN</option>
+                <option value="light blue">LIGHT BLUE</option>
+                <option value="tosca">TOSCA</option>
+            </select>
         </div>
+
+        <button class="cyber-btn" id="close-settings-btn">SIMPAN</button>
     </div>
 
     <div id="status-bar">
