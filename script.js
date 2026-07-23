@@ -139,8 +139,16 @@
         let timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ score: 0, name: "PLAYER" }), 2000));
         let hsData = await Promise.race([firebasePromise, timeoutPromise]);
 
-        highScore = hsData.score || 0;
-        highScoreHolder = hsData.name || "PLAYER";
+        if (typeof hsData === 'number') {
+            highScore = hsData;
+            highScoreHolder = "PLAYER";
+        } else if (typeof hsData === 'object' && hsData !== null) {
+            highScore = typeof hsData.score === 'number' ? hsData.score : 0;
+            highScoreHolder = typeof hsData.name === 'string' ? hsData.name : "PLAYER";
+        } else {
+            highScore = 0;
+            highScoreHolder = "PLAYER";
+        }
 
         perbaruiDisplayHighScore();
         tampilkanAlert("NEON CYBER SNAKE", "Koneksi Firebase Berhasil!\nTekan OK untuk mulai bermain!", "START");
@@ -224,6 +232,7 @@
             initAudio();
             if (!gameDihentikan && !isPaused) {
                 isPaused = true;
+                if(gameLoopTimeout) clearTimeout(gameLoopTimeout);
             }
             settingsModal.style.display = "block";
         };
@@ -510,15 +519,4 @@
                 ctx.fill();
 
                 ctx.beginPath();
-                ctx.moveTo(headR * 0.2, 0);
-                ctx.lineTo(headR * 1.3, 0);
-                ctx.lineTo(headR * 1.5, -headR * 0.25);
-                ctx.moveTo(headR * 1.3, 0);
-                ctx.lineTo(headR * 1.5, headR * 0.25);
-                ctx.strokeStyle = '#ff0055';
-                ctx.lineWidth = 1.2;
-                ctx.stroke();
-
-            } else {
-                ctx.beginPath();
-                ctx.arc(0, 0, headR + 
+                ctx.moveTo(hea
