@@ -27,21 +27,21 @@
         window.loadHighScoreFromFirebase = async function() {
             try {
                 const dbRef = ref(db);
-                const snapshot = await get(child(dbRef, 'highScore'));
+                const snapshot = await get(child(dbRef, 'highScoreData'));
                 if (snapshot.exists()) {
-                    return parseInt(snapshot.val()) || 0;
+                    return snapshot.val();
                 } else {
-                    return 0;
+                    return { score: 0, name: "PLAYER" };
                 }
             } catch (error) {
                 console.error("Gagal memuat High Score:", error);
-                return 0;
+                return { score: 0, name: "PLAYER" };
             }
         };
 
-        window.saveHighScoreToFirebase = async function(score) {
+        window.saveHighScoreToFirebase = async function(scoreData) {
             try {
-                await set(ref(db, 'highScore'), score);
+                await set(ref(db, 'highScoreData'), scoreData);
             } catch (error) {
                 console.error("Gagal menyimpan High Score:", error);
             }
@@ -82,16 +82,16 @@
 
         .hud-group {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
         }
 
         .hud-box {
             background: rgba(0, 0, 0, 0.5);
-            padding: 4px 8px;
+            padding: 4px 6px;
             border-radius: 5px;
             border: 1px dashed rgba(0, 255, 255, 0.5);
-            font-size: 11px;
+            font-size: 10px;
             font-weight: bold;
             letter-spacing: 1px;
         }
@@ -99,9 +99,13 @@
         #hi-score-box {
             border-color: #ffaa00;
             color: #ffaa00;
+            max-width: 130px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        #mute-btn {
+        .icon-btn {
             background: rgba(0, 255, 255, 0.1);
             border: 1px solid #00ffff;
             color: #00ffff;
@@ -146,7 +150,7 @@
             margin-top: 1px;
         }
 
-        #cyber-alert {
+        .cyber-modal {
             display: block;
             position: absolute;
             top: 50%;
@@ -157,24 +161,24 @@
             background: rgba(10, 10, 30, 0.95);
             border: 2px solid #00ffff;
             border-radius: 12px;
-            padding: 20px;
+            padding: 18px;
             text-align: center;
             box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
             z-index: 100;
         }
 
-        #alert-title {
-            font-size: 16px;
+        .modal-title {
+            font-size: 15px;
             font-weight: bold;
             color: #ff0055;
             margin-bottom: 12px;
             letter-spacing: 1px;
         }
 
-        #alert-msg {
-            font-size: 12px;
+        .modal-msg {
+            font-size: 11px;
             color: #ffffff;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             line-height: 1.4;
             white-space: pre-line;
         }
@@ -183,15 +187,48 @@
             background: transparent;
             color: #00ffff;
             border: 1px solid #00ffff;
-            padding: 8px 25px;
+            padding: 6px 18px;
             font-family: inherit;
             font-weight: bold;
             border-radius: 5px;
             cursor: pointer;
+            margin-top: 8px;
         }
         .cyber-btn:active {
             background: #00ffff;
             color: #06060c;
+        }
+
+        .cyber-input {
+            background: #050510;
+            border: 1px solid #00ffff;
+            color: #ffaa00;
+            padding: 6px 10px;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 12px;
+            text-align: center;
+            width: 80%;
+            margin-bottom: 8px;
+            outline: none;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 11px;
+        }
+
+        select {
+            background: #050510;
+            color: #00ffff;
+            border: 1px solid #00ffff;
+            padding: 4px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 11px;
         }
     </style>
 </head>
@@ -202,17 +239,52 @@
         <div class="hud-box" id="hi-score-box">HI: LOADING...</div>
         <div class="hud-group">
             <div class="hud-box" id="skor-txt">FEED: 00/10</div>
-            <button id="mute-btn">🔊</button>
+            <button class="icon-btn" id="mute-btn">🔊</button>
+            <button class="icon-btn" id="menu-btn">⚙️</button>
         </div>
     </div>
     
     <div id="game-area">
         <canvas id="gameCanvas"></canvas>
         
-        <div id="cyber-alert">
-            <div id="alert-title">NEON CYBER SNAKE</div>
-            <div id="alert-msg">Menghubungkan ke Database...</div>
+        <!-- MODAL UTAMA / ALERT -->
+        <div id="cyber-alert" class="cyber-modal">
+            <div id="alert-title" class="modal-title">NEON CYBER SNAKE</div>
+            <div id="alert-msg" class="modal-msg">Menghubungkan ke Database...</div>
+            <input type="text" id="player-name-input" class="cyber-input" placeholder="NAMA PENGALAM" maxlength="10" style="display:none;" />
+            <br/>
             <button class="cyber-btn" id="alert-btn" style="display:none;">OK</button>
+        </div>
+
+        <!-- MODAL PENGATURAN MENU -->
+        <div id="settings-modal" class="cyber-modal" style="display: none;">
+            <div class="modal-title">PENGATURAN</div>
+            
+            <div class="setting-row">
+                <label for="volume-select">VOLUME:</label>
+                <select id="volume-select">
+                    <option value="1">1.0 x</option>
+                    <option value="2">2.0 x</option>
+                    <option value="3" selected>3.0 x</option>
+                    <option value="4">4.0 x</option>
+                    <option value="5">5.0 x</option>
+                </select>
+            </div>
+
+            <div class="setting-row">
+                <label for="color-select">WARNA ULAR:</label>
+                <select id="color-select">
+                    <option value="green">GREEN</option>
+                    <option value="orange">ORANGE</option>
+                    <option value="yellow">YELLOW</option>
+                    <option value="red">RED</option>
+                    <option value="brown">BROWN</option>
+                    <option value="light blue">LIGHT BLUE</option>
+                    <option value="tosca">TOSCA</option>
+                </select>
+            </div>
+
+            <button class="cyber-btn" id="close-settings-btn">SIMPAN</button>
         </div>
     </div>
 
@@ -221,7 +293,6 @@
         <div class="signature">MADE BY NUNK13</div>
     </div>
 
-    <!-- PANGGAL FILE SCRIPT JS EXTERNAL -->
     <script src="script.js"></script>
 </body>
 </html>
