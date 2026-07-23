@@ -23,7 +23,6 @@
     let highScoreHolder = "PLAYER";
     let isNewRecord = false;
 
-    // Pengaturan Volume & Warna Ular
     let volumeMultiplier = 3.0;
     let snakeColorHex = '#7ec850';
     let snakeDarkHex = '#2e7d32';
@@ -126,33 +125,18 @@
         sesuaikanUkuran();
         setupEvents();
 
-        let firebasePromise = new Promise((resolve) => {
-            let checkInterval = setInterval(async () => {
-                if (window.loadHighScoreFromFirebase) {
-                    clearInterval(checkInterval);
-                    let data = await window.loadHighScoreFromFirebase();
-                    resolve(data);
-                }
-            }, 100);
-        });
-
-        let timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ score: 0, name: "PLAYER" }), 2000));
-        let hsData = await Promise.race([firebasePromise, timeoutPromise]);
-
-        if (typeof hsData === 'number') {
-            highScore = hsData;
-            highScoreHolder = "PLAYER";
-        } else if (typeof hsData === 'object' && hsData !== null) {
-            highScore = typeof hsData.score === 'number' ? hsData.score : 0;
-            highScoreHolder = typeof hsData.name === 'string' ? hsData.name : "PLAYER";
-        } else {
-            highScore = 0;
-            highScoreHolder = "PLAYER";
+        let hsData = { score: 0, name: "PLAYER" };
+        if (window.loadHighScoreFromFirebase) {
+            try {
+                hsData = await window.loadHighScoreFromFirebase();
+            } catch(e) {}
         }
 
+        highScore = typeof hsData.score === 'number' ? hsData.score : 0;
+        highScoreHolder = typeof hsData.name === 'string' ? hsData.name : "PLAYER";
+
         perbaruiDisplayHighScore();
-        tampilkanAlert("NEON CYBER SNAKE", "Koneksi Firebase Berhasil!\nTekan OK untuk mulai bermain!", "START");
-        alertBtn.style.display = "inline-block";
+        tampilkanAlert("NEON CYBER SNAKE", "Koneksi Berhasil!\nTekan OK untuk mulai!", "START");
     }
 
     function perbaruiDisplayHighScore() {
@@ -177,7 +161,7 @@
         document.getElementById("alert-msg").innerText = message;
         
         if (mode === 'NEW_RECORD') {
-            nameInput.style.display = "inline-block";
+            nameInput.style.display = "block";
             nameInput.value = "";
             alertBtn.innerText = "SIMPAN & MAIN";
         } else {
@@ -190,16 +174,11 @@
 
     function setupEvents() {
         alertBtn.onclick = function(e) {
-            if(e) e.stopPropagation();
             initAudio();
 
             if (statusAlertMode === 'NEW_RECORD') {
                 let inputVal = nameInput.value.trim().toUpperCase();
-                if (inputVal !== "") {
-                    highScoreHolder = inputVal;
-                } else {
-                    highScoreHolder = "PLAYER";
-                }
+                highScoreHolder = inputVal !== "" ? inputVal : "PLAYER";
                 if (window.saveHighScoreToFirebase) {
                     window.saveHighScoreToFirebase({ score: highScore, name: highScoreHolder });
                 }
@@ -221,14 +200,12 @@
         };
 
         muteBtn.onclick = function(e) {
-            if(e) e.stopPropagation();
             initAudio();
             isMuted = !isMuted;
             muteBtn.innerText = isMuted ? "🔇" : "🔊";
         };
 
         menuBtn.onclick = function(e) {
-            if(e) e.stopPropagation();
             initAudio();
             if (!gameDihentikan && !isPaused) {
                 isPaused = true;
@@ -238,7 +215,6 @@
         };
 
         closeSettingsBtn.onclick = function(e) {
-            if(e) e.stopPropagation();
             volumeMultiplier = parseFloat(volumeSelect.value);
             let selectedColor = colorSelect.value;
             snakeColorHex = colorMap[selectedColor].body;
@@ -254,13 +230,11 @@
 
         gameArea.addEventListener('touchstart', function(e) {
             initAudio();
-            if (e.target.closest('.cyber-modal') || e.target === muteBtn || e.target === menuBtn) return;
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
         }, {passive: true});
 
         gameArea.addEventListener('touchend', function(e) {
-            if (e.target.closest('.cyber-modal') || e.target === muteBtn || e.target === menuBtn) return;
             if (e.changedTouches.length === 0) return;
 
             let dx = e.changedTouches[0].clientX - touchStartX;
@@ -335,7 +309,6 @@
             if (kepalaBaru.y < margin) kepalaBaru.y = playHeight - grid + margin;
             else if (kepalaBaru.y >= playHeight + margin) kepalaBaru.y = margin;
 
-            // TABRAKAN DIRI
             if (ular.slice(1).some(s => s.x === kepalaBaru.x && s.y === kepalaBaru.y)) {
                 playSound('gameover');
                 if (isNewRecord) {
@@ -355,7 +328,6 @@
 
             let jarakEuclidean = Math.hypot(headCX - foodCX, headCY - foodCY);
             
-            // DETEKSI TEPAT DEPAN KEPALA
             let mauMakan = false;
             let difX = makanan.x - kepalaBaru.x;
             let difY = makanan.y - kepalaBaru.y;
@@ -388,15 +360,12 @@
                 ular.pop();
             }
 
-            // CLEAR CANVAS
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // BORDER GAME AREA
             ctx.strokeStyle = 'rgba(0, 255, 255, 0.4)';
             ctx.lineWidth = 2;
             ctx.strokeRect(margin - 1, margin - 1, playWidth + 2, playHeight + 2);
 
-            // MAKANAN APEL MERAH
             ctx.save();
             ctx.fillStyle = '#ff2244';
             ctx.shadowBlur = 8;
@@ -409,7 +378,6 @@
             ctx.stroke();
             ctx.restore();
 
-            // RENDERING BADAN ULAR
             ctx.save();
             let totalSeg = ular.length;
 
@@ -434,7 +402,6 @@
                 let nx = -dy / len;
                 let ny = dx / len;
 
-                // Outline Hitam
                 ctx.beginPath();
                 ctx.moveTo(p1.x + nx * (w1 + 1), p1.y + ny * (w1 + 1));
                 ctx.lineTo(p2.x + nx * (w2 + 1), p2.y + ny * (w2 + 1));
@@ -444,7 +411,6 @@
                 ctx.fillStyle = '#000000';
                 ctx.fill();
 
-                // Isi Warna Ular
                 ctx.beginPath();
                 ctx.moveTo(p1.x + nx * w1, p1.y + ny * w1);
                 ctx.lineTo(p2.x + nx * w2, p2.y + ny * w2);
@@ -455,7 +421,6 @@
                 ctx.fill();
             }
 
-            // Sendi Ular
             for (let i = 1; i < totalSeg; i++) {
                 let pt = {x: ular[i].x + grid/2, y: ular[i].y + grid/2};
                 let r = (grid * 0.48) * Math.pow(1 - (i / totalSeg), 0.3);
@@ -480,7 +445,6 @@
             }
             ctx.restore();
 
-            // RENDERING KEPALA ULAR
             ctx.save();
             ctx.translate(headCX, headCY);
 
@@ -519,4 +483,49 @@
                 ctx.fill();
 
                 ctx.beginPath();
-                ctx.moveTo(hea
+                ctx.moveTo(headR * 0.2, 0);
+                ctx.lineTo(headR * 1.3, 0);
+                ctx.lineTo(headR * 1.5, -headR * 0.25);
+                ctx.moveTo(headR * 1.3, 0);
+                ctx.lineTo(headR * 1.5, headR * 0.25);
+                ctx.strokeStyle = '#ff0055';
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+
+            } else {
+                ctx.beginPath();
+                ctx.arc(0, 0, headR + 1, 0, Math.PI * 2);
+                ctx.fillStyle = '#000000';
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(0, 0, headR, 0, Math.PI * 2);
+                ctx.fillStyle = snakeColorHex;
+                ctx.fill();
+            }
+
+            let eyeOffsetY = headR * 0.42;
+            let eyeOffsetX = headR * 0.22;
+            let eyeR = headR * 0.32;
+            let pupilR = eyeR * 0.5;
+
+            ctx.beginPath();
+            ctx.arc(eyeOffsetX, -eyeOffsetY, eyeR, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(eyeOffsetX + (mauMakan ? 1.5 : 0.5), -eyeOffsetY, pupilR, 0, Math.PI * 2);
+            ctx.fillStyle = '#000000';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(eyeOffsetX, eyeOffsetY, eyeR, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 0.8;
+            ctx.stroke()
