@@ -125,15 +125,21 @@
         sesuaikanUkuran();
         setupEvents();
 
-        let hsData = { score: 0, name: "PLAYER" };
+        // Render game canvas awal
+        resetGame();
+
+        // Ambil data High Score tanpa mengunci jalannya tampilan
         if (window.loadHighScoreFromFirebase) {
             try {
-                hsData = await window.loadHighScoreFromFirebase();
-            } catch(e) {}
+                let hsData = await window.loadHighScoreFromFirebase();
+                if (hsData) {
+                    highScore = typeof hsData.score === 'number' ? hsData.score : 0;
+                    highScoreHolder = typeof hsData.name === 'string' ? hsData.name : "PLAYER";
+                }
+            } catch(e) {
+                console.log("Load HS error", e);
+            }
         }
-
-        highScore = typeof hsData.score === 'number' ? hsData.score : 0;
-        highScoreHolder = typeof hsData.name === 'string' ? hsData.name : "PLAYER";
 
         perbaruiDisplayHighScore();
         tampilkanAlert("NEON CYBER SNAKE", "Koneksi Berhasil!\nTekan OK untuk mulai!", "START");
@@ -528,4 +534,22 @@
             ctx.fill();
             ctx.strokeStyle = '#000000';
             ctx.lineWidth = 0.8;
-            ctx.stroke()
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(eyeOffsetX + (mauMakan ? 1.5 : 0.5), eyeOffsetY, pupilR, 0, Math.PI * 2);
+            ctx.fillStyle = '#000000';
+            ctx.fill();
+
+            ctx.restore();
+
+            main();
+        }, kecepatan);
+    }
+
+    window.addEventListener('resize', function() {
+        sesuaikanUkuran();
+    });
+
+    window.onload = init;
+})();
