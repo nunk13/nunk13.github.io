@@ -29,7 +29,11 @@
                 const dbRef = ref(db);
                 const snapshot = await get(child(dbRef, 'highScoreData'));
                 if (snapshot.exists()) {
-                    return snapshot.val();
+                    let val = snapshot.val();
+                    if (typeof val === 'number') {
+                        return { score: val, name: "PLAYER" };
+                    }
+                    return { score: val.score || 0, name: val.name || "PLAYER" };
                 } else {
                     return { score: 0, name: "PLAYER" };
                 }
@@ -251,7 +255,7 @@
         <div id="cyber-alert" class="cyber-modal">
             <div id="alert-title" class="modal-title">NEON CYBER SNAKE</div>
             <div id="alert-msg" class="modal-msg">Menghubungkan ke Database...</div>
-            <input type="text" id="player-name-input" class="cyber-input" placeholder="NAMA PENGALAM" maxlength="10" style="display:none;" />
+            <input type="text" id="player-name-input" class="cyber-input" placeholder="NAMA PEMAIN" maxlength="10" style="display:none;" />
             <br/>
             <button class="cyber-btn" id="alert-btn" style="display:none;">OK</button>
         </div>
