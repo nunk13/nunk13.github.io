@@ -64,7 +64,7 @@
                 osc.frequency.setValueAtTime(500, now);
                 osc.frequency.exponentialRampToValueAtTime(1200, now + 0.14);
                 
-                gain.gain.setValueAtTime(8.2, now);
+                gain.gain.setValueAtTime(6.2, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
                 
                 osc.start(now);
@@ -76,7 +76,7 @@
                 osc.frequency.setValueAtTime(783.99, now + 0.16); 
                 osc.frequency.setValueAtTime(1046.50, now + 0.24);
                 
-                gain.gain.setValueAtTime(8.5, now);
+                gain.gain.setValueAtTime(6.5, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.38);
                 
                 osc.start(now);
@@ -86,7 +86,7 @@
                 osc.frequency.setValueAtTime(400, now);
                 osc.frequency.exponentialRampToValueAtTime(60, now + 0.5);
                 
-                gain.gain.setValueAtTime(8.8, now);
+                gain.gain.setValueAtTime(6.8, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
                 
                 osc.start(now);
