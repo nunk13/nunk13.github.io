@@ -1,5 +1,5 @@
 (function() {
-    let canvas, ctx, gameArea, muteBtn, alertBtn, alertBox;
+    let canvas, ctx, gameArea, muteBtn, menuBtn, alertBtn, alertBox, nameInput, settingsModal, closeSettingsBtn, volumeSelect, colorSelect;
     
     let grid = 11; 
     let margin = 4;
@@ -20,8 +20,24 @@
     let gameLoopTimeout = null;
     let statusAlertMode = 'START';
     let highScore = 0;
+    let highScoreHolder = "PLAYER";
+    let isNewRecord = false;
 
-    // --- AUDIO GENERATOR SUPER LOUD & PUNCHY ---
+    // Pengaturan Volume & Warna Ular
+    let volumeMultiplier = 3.0;
+    let snakeColorHex = '#7ec850';
+    let snakeDarkHex = '#2e7d32';
+
+    const colorMap = {
+        'green': { body: '#7ec850', dark: '#2e7d32' },
+        'orange': { body: '#ff9800', dark: '#e65100' },
+        'yellow': { body: '#ffeb3b', dark: '#f57f17' },
+        'red': { body: '#f44336', dark: '#b71c1c' },
+        'brown': { body: '#795548', dark: '#3e2723' },
+        'light blue': { body: '#03a9f4', dark: '#01579b' },
+        'tosca': { body: '#00bcd4', dark: '#006064' }
+    };
+
     let audioCtx = null;
     let compressorNode = null;
 
@@ -30,14 +46,12 @@
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (AudioContext) {
                 audioCtx = new AudioContext();
-                
                 compressorNode = audioCtx.createDynamicsCompressor();
                 compressorNode.threshold.setValueAtTime(-12, audioCtx.currentTime);
                 compressorNode.knee.setValueAtTime(30, audioCtx.currentTime);
                 compressorNode.ratio.setValueAtTime(12, audioCtx.currentTime);
                 compressorNode.attack.setValueAtTime(0.003, audioCtx.currentTime);
                 compressorNode.release.setValueAtTime(0.2, audioCtx.currentTime);
-                
                 compressorNode.connect(audioCtx.destination);
             }
         }
@@ -59,14 +73,14 @@
             osc.connect(gain);
             gain.connect(compressorNode || audioCtx.destination);
 
+            let baseVol = 1.0;
             if (type === 'eat') {
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(500, now);
                 osc.frequency.exponentialRampToValueAtTime(1200, now + 0.14);
-                
-                gain.gain.setValueAtTime(20.2, now);
+                baseVol = 0.73;
+                gain.gain.setValueAtTime(baseVol * volumeMultiplier, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
-                
                 osc.start(now);
                 osc.stop(now + 0.14);
             } else if (type === 'levelup') {
@@ -75,20 +89,18 @@
                 osc.frequency.setValueAtTime(659.25, now + 0.08); 
                 osc.frequency.setValueAtTime(783.99, now + 0.16); 
                 osc.frequency.setValueAtTime(1046.50, now + 0.24);
-                
-                gain.gain.setValueAtTime(20.5, now);
+                baseVol = 0.83;
+                gain.gain.setValueAtTime(baseVol * volumeMultiplier, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.38);
-                
                 osc.start(now);
                 osc.stop(now + 0.38);
             } else if (type === 'gameover') {
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(400, now);
                 osc.frequency.exponentialRampToValueAtTime(60, now + 0.5);
-                
-                gain.gain.setValueAtTime(20.8, now);
+                baseVol = 0.93;
+                gain.gain.setValueAtTime(baseVol * volumeMultiplier, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-                
                 osc.start(now);
                 osc.stop(now + 0.5);
             }
@@ -102,8 +114,14 @@
         ctx = canvas.getContext("2d");
         gameArea = document.getElementById("game-area");
         muteBtn = document.getElementById("mute-btn");
+        menuBtn = document.getElementById("menu-btn");
         alertBtn = document.getElementById("alert-btn");
         alertBox = document.getElementById("cyber-alert");
+        nameInput = document.getElementById("player-name-input");
+        settingsModal = document.getElementById("settings-modal");
+        closeSettingsBtn = document.getElementById("close-settings-btn");
+        volumeSelect = document.getElementById("volume-select");
+        colorSelect = document.getElementById("color-select");
 
         sesuaikanUkuran();
         setupEvents();
@@ -112,18 +130,25 @@
             let checkInterval = setInterval(async () => {
                 if (window.loadHighScoreFromFirebase) {
                     clearInterval(checkInterval);
-                    let score = await window.loadHighScoreFromFirebase();
-                    resolve(score);
+                    let data = await window.loadHighScoreFromFirebase();
+                    resolve(data);
                 }
             }, 100);
         });
 
-        let timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(0), 2000));
-        highScore = await Promise.race([firebasePromise, timeoutPromise]);
+        let timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ score: 0, name: "PLAYER" }), 2000));
+        let hsData = await Promise.race([firebasePromise, timeoutPromise]);
 
-        document.getElementById("hi-score-box").innerText = "HI: " + highScore;
+        highScore = hsData.score || 0;
+        highScoreHolder = hsData.name || "PLAYER";
+
+        perbaruiDisplayHighScore();
         tampilkanAlert("NEON CYBER SNAKE", "Koneksi Firebase Berhasil!\nTekan OK untuk mulai bermain!", "START");
         alertBtn.style.display = "inline-block";
+    }
+
+    function perbaruiDisplayHighScore() {
+        document.getElementById("hi-score-box").innerText = "HI: " + highScore + " [" + highScoreHolder + "]";
     }
 
     function sesuaikanUkuran() {
@@ -142,7 +167,16 @@
         statusAlertMode = mode;
         document.getElementById("alert-title").innerText = title;
         document.getElementById("alert-msg").innerText = message;
-        alertBtn.innerText = (mode === 'GAMEOVER') ? "MAIN LAGI" : "OK";
+        
+        if (mode === 'NEW_RECORD') {
+            nameInput.style.display = "inline-block";
+            nameInput.value = "";
+            alertBtn.innerText = "SIMPAN & MAIN";
+        } else {
+            nameInput.style.display = "none";
+            alertBtn.innerText = (mode === 'GAMEOVER') ? "MAIN LAGI" : "OK";
+        }
+
         alertBox.style.display = "block";
     }
 
@@ -150,6 +184,20 @@
         alertBtn.onclick = function(e) {
             if(e) e.stopPropagation();
             initAudio();
+
+            if (statusAlertMode === 'NEW_RECORD') {
+                let inputVal = nameInput.value.trim().toUpperCase();
+                if (inputVal !== "") {
+                    highScoreHolder = inputVal;
+                } else {
+                    highScoreHolder = "PLAYER";
+                }
+                if (window.saveHighScoreToFirebase) {
+                    window.saveHighScoreToFirebase({ score: highScore, name: highScoreHolder });
+                }
+                perbaruiDisplayHighScore();
+            }
+
             alertBox.style.display = "none";
 
             if (statusAlertMode === 'PAUSE') {
@@ -171,17 +219,39 @@
             muteBtn.innerText = isMuted ? "🔇" : "🔊";
         };
 
+        menuBtn.onclick = function(e) {
+            if(e) e.stopPropagation();
+            initAudio();
+            if (!gameDihentikan && !isPaused) {
+                isPaused = true;
+            }
+            settingsModal.style.display = "block";
+        };
+
+        closeSettingsBtn.onclick = function(e) {
+            if(e) e.stopPropagation();
+            volumeMultiplier = parseFloat(volumeSelect.value);
+            let selectedColor = colorSelect.value;
+            snakeColorHex = colorMap[selectedColor].body;
+            snakeDarkHex = colorMap[selectedColor].dark;
+
+            settingsModal.style.display = "none";
+            if (isPaused) {
+                tampilkanAlert("GAME PAUSED", "Pengaturan disimpan.\nTekan OK untuk melanjutkan.", "PAUSE");
+            }
+        };
+
         let touchStartX = 0, touchStartY = 0;
 
         gameArea.addEventListener('touchstart', function(e) {
             initAudio();
-            if (e.target === alertBtn || e.target === muteBtn) return;
+            if (e.target.closest('.cyber-modal') || e.target === muteBtn || e.target === menuBtn) return;
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
         }, {passive: true});
 
         gameArea.addEventListener('touchend', function(e) {
-            if (e.target === alertBtn || e.target === muteBtn) return;
+            if (e.target.closest('.cyber-modal') || e.target === muteBtn || e.target === menuBtn) return;
             if (e.changedTouches.length === 0) return;
 
             let dx = e.changedTouches[0].clientX - touchStartX;
@@ -225,6 +295,7 @@
         totalSkorKumulatif = 0; 
         level = 1; 
         kecepatan = kecepatanAwal; 
+        isNewRecord = false;
         perbaruiInfo(); 
         acakMakanan();
     }
@@ -258,7 +329,11 @@
             // TABRAKAN DIRI
             if (ular.slice(1).some(s => s.x === kepalaBaru.x && s.y === kepalaBaru.y)) {
                 playSound('gameover');
-                tampilkanAlert("GAME OVER", "Skor Anda: " + totalSkorKumulatif + "\nHighScore Online: " + highScore, "GAMEOVER");
+                if (isNewRecord) {
+                    tampilkanAlert("REKOR BARU!", "Skor Anda: " + totalSkorKumulatif + "\nMasukkan Nama Anda:", "NEW_RECORD");
+                } else {
+                    tampilkanAlert("GAME OVER", "Skor Anda: " + totalSkorKumulatif + "\nHigh Score: " + highScore + " [" + highScoreHolder + "]", "GAMEOVER");
+                }
                 return;
             }
 
@@ -271,7 +346,7 @@
 
             let jarakEuclidean = Math.hypot(headCX - foodCX, headCY - foodCY);
             
-            // --- DETEKSI TEPAT DEPAN KEPALA ---
+            // DETEKSI TEPAT DEPAN KEPALA
             let mauMakan = false;
             let difX = makanan.x - kepalaBaru.x;
             let difY = makanan.y - kepalaBaru.y;
@@ -294,10 +369,8 @@
 
                 if (totalSkorKumulatif > highScore) {
                     highScore = totalSkorKumulatif;
-                    if (window.saveHighScoreToFirebase) {
-                        window.saveHighScoreToFirebase(highScore);
-                    }
-                    document.getElementById("hi-score-box").innerText = "HI: " + highScore;
+                    isNewRecord = true;
+                    perbaruiDisplayHighScore();
                 }
 
                 perbaruiInfo();
@@ -327,7 +400,7 @@
             ctx.stroke();
             ctx.restore();
 
-            // === RENDERING BADAN ULAR ===
+            // RENDERING BADAN ULAR
             ctx.save();
             let totalSeg = ular.length;
 
@@ -362,18 +435,18 @@
                 ctx.fillStyle = '#000000';
                 ctx.fill();
 
-                // Isi Hijau
+                // Isi Warna Ular
                 ctx.beginPath();
                 ctx.moveTo(p1.x + nx * w1, p1.y + ny * w1);
                 ctx.lineTo(p2.x + nx * w2, p2.y + ny * w2);
                 ctx.lineTo(p2.x - nx * w2, p2.y - ny * w2);
                 ctx.lineTo(p1.x - nx * w1, p1.y - ny * w1);
                 ctx.closePath();
-                ctx.fillStyle = '#7ec850';
+                ctx.fillStyle = snakeColorHex;
                 ctx.fill();
             }
 
-            // Sendi & Totol Hijau Tua
+            // Sendi Ular
             for (let i = 1; i < totalSeg; i++) {
                 let pt = {x: ular[i].x + grid/2, y: ular[i].y + grid/2};
                 let r = (grid * 0.48) * Math.pow(1 - (i / totalSeg), 0.3);
@@ -386,19 +459,19 @@
 
                 ctx.beginPath();
                 ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
-                ctx.fillStyle = '#7ec850';
+                ctx.fillStyle = snakeColorHex;
                 ctx.fill();
 
                 if (i % 2 === 0 && r > 3) {
                     ctx.beginPath();
                     ctx.arc(pt.x, pt.y - (r * 0.2), r * 0.35, 0, Math.PI * 2);
-                    ctx.fillStyle = '#2e7d32';
+                    ctx.fillStyle = snakeDarkHex;
                     ctx.fill();
                 }
             }
             ctx.restore();
 
-            // === RENDERING KEPALA ULAR ===
+            // RENDERING KEPALA ULAR
             ctx.save();
             ctx.translate(headCX, headCY);
 
@@ -426,7 +499,7 @@
                 ctx.arc(0, 0, headR, mouthAngle, Math.PI * 2 - mouthAngle);
                 ctx.lineTo(headR * 0.3, 0);
                 ctx.closePath();
-                ctx.fillStyle = '#7ec850';
+                ctx.fillStyle = snakeColorHex;
                 ctx.fill();
 
                 ctx.beginPath();
@@ -448,57 +521,4 @@
 
             } else {
                 ctx.beginPath();
-                ctx.arc(0, 0, headR + 1, 0, Math.PI * 2);
-                ctx.fillStyle = '#000000';
-                ctx.fill();
-
-                ctx.beginPath();
-                ctx.arc(0, 0, headR, 0, Math.PI * 2);
-                ctx.fillStyle = '#7ec850';
-                ctx.fill();
-            }
-
-            let eyeOffsetY = headR * 0.42;
-            let eyeOffsetX = headR * 0.22;
-            let eyeR = headR * 0.32;
-            let pupilR = eyeR * 0.5;
-
-            ctx.beginPath();
-            ctx.arc(eyeOffsetX, -eyeOffsetY, eyeR, 0, Math.PI * 2);
-            ctx.fillStyle = '#ffffff';
-            ctx.fill();
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(eyeOffsetX + (mauMakan ? 1.5 : 0.5), -eyeOffsetY, pupilR, 0, Math.PI * 2);
-            ctx.fillStyle = '#000000';
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.arc(eyeOffsetX, eyeOffsetY, eyeR, 0, Math.PI * 2);
-            ctx.fillStyle = '#ffffff';
-            ctx.fill();
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(eyeOffsetX + (mauMakan ? 1.5 : 0.5), eyeOffsetY, pupilR, 0, Math.PI * 2);
-            ctx.fillStyle = '#000000';
-            ctx.fill();
-
-            ctx.restore();
-
-            main();
-        }, kecepatan);
-    }
-
-    window.addEventListener('resize', function() {
-        sesuaikanUkuran();
-    });
-
-    window.onload = init;
-})();
-          
+                ctx.arc(0, 0, headR + 
