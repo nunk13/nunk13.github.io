@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Cyber Snake v6.8</title>
+    <title>Neon Cyber Snake v6.8 - Online Firebase</title>
     
-    <!-- Firebase Module -->
+    <!-- Import Firebase SDK via CDN -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, get, set, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -21,37 +21,31 @@
             measurementId: "G-Z8RJ50PNH8"
         };
 
-        try {
-            const app = initializeApp(firebaseConfig);
-            const db = getDatabase(app);
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-            window.loadHighScoreFromFirebase = async function() {
-                try {
-                    const dbRef = ref(db);
-                    const snapshot = await get(child(dbRef, 'highScoreData'));
-                    if (snapshot.exists()) {
-                        let val = snapshot.val();
-                        if (typeof val === 'number') return { score: val, name: "PLAYER" };
-                        if (typeof val === 'object' && val !== null) {
-                            return { score: Number(val.score) || 0, name: String(val.name || "PLAYER") };
-                        }
-                    }
-                } catch (error) {
-                    console.error("Firebase Read Error:", error);
+        window.loadHighScoreFromFirebase = async function() {
+            try {
+                const dbRef = ref(db);
+                const snapshot = await get(child(dbRef, 'highScore'));
+                if (snapshot.exists()) {
+                    return parseInt(snapshot.val()) || 0;
+                } else {
+                    return 0;
                 }
-                return { score: 0, name: "PLAYER" };
-            };
+            } catch (error) {
+                console.error("Gagal memuat High Score:", error);
+                return 0;
+            }
+        };
 
-            window.saveHighScoreToFirebase = async function(scoreData) {
-                try {
-                    await set(ref(db, 'highScoreData'), scoreData);
-                } catch (error) {
-                    console.error("Firebase Save Error:", error);
-                }
-            };
-        } catch (e) {
-            console.error("Firebase Init Error:", e);
-        }
+        window.saveHighScoreToFirebase = async function(score) {
+            try {
+                await set(ref(db, 'highScore'), score);
+            } catch (error) {
+                console.error("Gagal menyimpan High Score:", error);
+            }
+        };
     </script>
 
     <style>
@@ -80,24 +74,24 @@
             justify-content: space-between;
             align-items: center;
             padding: 0 10px;
-            background: rgba(10, 10, 25, 0.95);
+            background: rgba(10, 10, 25, 0.9);
             border-bottom: 2px solid rgba(0, 255, 255, 0.3);
-            z-index: 999;
+            z-index: 20;
             flex-shrink: 0;
         }
 
         .hud-group {
             display: flex;
-            gap: 6px;
+            gap: 8px;
             align-items: center;
         }
 
         .hud-box {
             background: rgba(0, 0, 0, 0.5);
-            padding: 4px 6px;
+            padding: 4px 8px;
             border-radius: 5px;
             border: 1px dashed rgba(0, 255, 255, 0.5);
-            font-size: 10px;
+            font-size: 11px;
             font-weight: bold;
             letter-spacing: 1px;
         }
@@ -105,20 +99,16 @@
         #hi-score-box {
             border-color: #ffaa00;
             color: #ffaa00;
-            max-width: 140px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
-        .icon-btn {
-            background: rgba(0, 255, 255, 0.2);
+        #mute-btn {
+            background: rgba(0, 255, 255, 0.1);
             border: 1px solid #00ffff;
             color: #00ffff;
             border-radius: 5px;
-            padding: 6px 10px;
+            padding: 4px 8px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         #game-area {
@@ -156,83 +146,52 @@
             margin-top: 1px;
         }
 
-        .cyber-modal {
-            display: none;
-            position: fixed;
+        #cyber-alert {
+            display: block;
+            position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             width: 85%;
             max-width: 320px;
-            background: #0a0a1e;
+            background: rgba(10, 10, 30, 0.95);
             border: 2px solid #00ffff;
             border-radius: 12px;
-            padding: 18px;
+            padding: 20px;
             text-align: center;
-            box-shadow: 0 0 25px rgba(0, 255, 255, 0.6);
-            z-index: 99999;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+            z-index: 100;
         }
 
-        .modal-title {
-            font-size: 15px;
+        #alert-title {
+            font-size: 16px;
             font-weight: bold;
             color: #ff0055;
             margin-bottom: 12px;
             letter-spacing: 1px;
         }
 
-        .modal-msg {
-            font-size: 11px;
+        #alert-msg {
+            font-size: 12px;
             color: #ffffff;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
             line-height: 1.4;
             white-space: pre-line;
         }
 
         .cyber-btn {
-            background: #050510;
+            background: transparent;
             color: #00ffff;
             border: 1px solid #00ffff;
-            padding: 8px 18px;
+            padding: 8px 25px;
             font-family: inherit;
             font-weight: bold;
             border-radius: 5px;
             cursor: pointer;
-            margin-top: 8px;
         }
-
-        .cyber-input {
-            background: #000000;
-            border: 1px solid #ffaa00;
-            color: #ffaa00;
-            padding: 8px;
-            border-radius: 5px;
-            font-family: inherit;
-            font-size: 13px;
-            text-align: center;
-            width: 85%;
-            margin-bottom: 10px;
-            outline: none;
-            user-select: text !important;
-            -webkit-user-select: text !important;
-        }
-
-        .setting-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            font-size: 11px;
-        }
-
-        select {
-            background: #000000;
-            color: #00ffff;
-            border: 1px solid #00ffff;
-            padding: 6px;
-            border-radius: 4px;
-            font-family: inherit;
-            font-size: 11px;
+        .cyber-btn:active {
+            background: #00ffff;
+            color: #06060c;
         }
     </style>
 </head>
@@ -240,56 +199,21 @@
 
     <div id="info-panel">
         <div class="hud-box" id="level-txt">LVL: 01</div>
-        <div class="hud-box" id="hi-score-box">HI: 0 [PLAYER]</div>
+        <div class="hud-box" id="hi-score-box">HI: LOADING...</div>
         <div class="hud-group">
             <div class="hud-box" id="skor-txt">FEED: 00/10</div>
-            <button class="icon-btn" id="mute-btn">🔊</button>
-            <button class="icon-btn" id="menu-btn">⚙️</button>
+            <button id="mute-btn">🔊</button>
         </div>
     </div>
     
     <div id="game-area">
         <canvas id="gameCanvas"></canvas>
-    </div>
-
-    <!-- MODAL UTAMA / ALERT -->
-    <div id="cyber-alert" class="cyber-modal">
-        <div id="alert-title" class="modal-title">NEON CYBER SNAKE</div>
-        <div id="alert-msg" class="modal-msg">Menghubungkan ke Database...</div>
-        <input type="text" id="player-name-input" class="cyber-input" placeholder="NAMA PEMAIN" maxlength="10" style="display:none;" />
-        <br/>
-        <button class="cyber-btn" id="alert-btn">OK</button>
-    </div>
-
-    <!-- MODAL PENGATURAN MENU -->
-    <div id="settings-modal" class="cyber-modal">
-        <div class="modal-title">PENGATURAN</div>
         
-        <div class="setting-row">
-            <label for="volume-select">VOLUME:</label>
-            <select id="volume-select">
-                <option value="1">1.0 x</option>
-                <option value="2">2.0 x</option>
-                <option value="3" selected>3.0 x</option>
-                <option value="4">4.0 x</option>
-                <option value="5">5.0 x</option>
-            </select>
+        <div id="cyber-alert">
+            <div id="alert-title">NEON CYBER SNAKE</div>
+            <div id="alert-msg">Menghubungkan ke Database...</div>
+            <button class="cyber-btn" id="alert-btn" style="display:none;">OK</button>
         </div>
-
-        <div class="setting-row">
-            <label for="color-select">WARNA ULAR:</label>
-            <select id="color-select">
-                <option value="green">GREEN</option>
-                <option value="orange">ORANGE</option>
-                <option value="yellow">YELLOW</option>
-                <option value="red">RED</option>
-                <option value="brown">BROWN</option>
-                <option value="light blue">LIGHT BLUE</option>
-                <option value="tosca">TOSCA</option>
-            </select>
-        </div>
-
-        <button class="cyber-btn" id="close-settings-btn">SIMPAN</button>
     </div>
 
     <div id="status-bar">
@@ -297,6 +221,7 @@
         <div class="signature">MADE BY NUNK13</div>
     </div>
 
+    <!-- PANGGAL FILE SCRIPT JS EXTERNAL -->
     <script src="script.js"></script>
 </body>
 </html>
