@@ -279,7 +279,7 @@
             if (arah === 'KANAN' && difY === 0 && difX > 0 && difX <= grid * 2.5) mauMakan = true;
             if (arah === 'KIRI' && difY === 0 && difX < 0 && Math.abs(difX) <= grid * 2.5) mauMakan = true;
             if (arah === 'BAWAH' && difX === 0 && difY > 0 && difY <= grid * 2.5) mauMakan = true;
-            if (arah === 'ATAS' && difX === 0 && difY < 0 && Math.abs(difX) <= grid * 2.5) mauMakan = true;
+            if (arah === 'ATAS' && difX === 0 && difY < 0 && Math.abs(difY) <= grid * 2.5) mauMakan = true;
 
             if (jarakEuclidean < grid * 0.85) {
                 totalSkorKumulatif += 1;
