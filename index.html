@@ -285,7 +285,6 @@
         <div class="hud-box" id="hi-score-box">HI: LOADING...</div>
         <div class="hud-group">
             <div class="hud-box" id="skor-txt">FEED: 00/10</div>
-            <!-- MUTE BUTTON & MENU SETTINGS DUA-DUANYA TERSEDIA -->
             <button class="hud-btn" id="mute-btn">🔊</button>
             <button class="hud-btn" id="menu-btn">⚙️</button>
         </div>
@@ -385,7 +384,7 @@
             // --- DEFAULTS & SETTINGS ---
             let currentLang = 'id';
             let isMuted = false;
-            let soundVolume = 1.0; // 0.0 - 1.0
+            let soundVolume = 1.0; 
             let lastActiveVolume = 1.0; 
             let snakeColor = 'green'; 
 
@@ -402,7 +401,8 @@
                     startMsg: "Masukkan nama kamu untuk memulai permainan:",
                     startBtn: "MULAI MAIN",
                     pauseTitle: "GAME PAUSED",
-                    pauseMsg: "Permainan dijeda.\nTekan OK untuk melanjutkan.",
+                    pauseMsg: "Permainan dijeda.\nTekan Lanjutkan untuk bermain.",
+                    resumeBtn: "LANJUTKAN",
                     gameOverTitle: "GAME OVER",
                     newRecordMsg: "🎆 REKOR BARU GLOBAL! 🎆\nSelamat {name}!\nSkor Kamu: {score}",
                     scoreMsg: "Skor Anda: {score}\nHighScore: {holder} ({high})",
@@ -425,7 +425,8 @@
                     startMsg: "Enter your name to start the game:",
                     startBtn: "START GAME",
                     pauseTitle: "GAME PAUSED",
-                    pauseMsg: "Game is paused.\nPress OK to resume.",
+                    pauseMsg: "Game is paused.\nPress Resume to continue.",
+                    resumeBtn: "RESUME",
                     gameOverTitle: "GAME OVER",
                     newRecordMsg: "🎆 NEW GLOBAL RECORD! 🎆\nCongrats {name}!\nYour Score: {score}",
                     scoreMsg: "Your Score: {score}\nHighScore: {holder} ({high})",
@@ -681,7 +682,15 @@
 
                 document.getElementById("alert-title").innerText = title;
                 document.getElementById("alert-msg").innerText = message;
-                alertBtn.innerText = (mode === 'GAMEOVER') ? I18N[currentLang].playAgainBtn : I18N[currentLang].startBtn;
+                
+                // PENYESUAIAN TEKS TOMBOL BERDASARKAN MODE
+                if (mode === 'GAMEOVER') {
+                    alertBtn.innerText = I18N[currentLang].playAgainBtn;
+                } else if (mode === 'PAUSE') {
+                    alertBtn.innerText = I18N[currentLang].resumeBtn;
+                } else {
+                    alertBtn.innerText = I18N[currentLang].startBtn;
+                }
                 
                 if (mode === 'START') {
                     nameInput.style.display = "inline-block";
@@ -693,7 +702,8 @@
                     startLangSelect.style.display = "none";
                 }
 
-                if (mode === 'GAMEOVER') {
+                // MENAMPILKAN TOMBOL KELUAR SAAT GAMEOVER ATAU PAUSE
+                if (mode === 'GAMEOVER' || mode === 'PAUSE') {
                     exitBtn.style.display = "inline-block";
                 } else {
                     exitBtn.style.display = "none";
@@ -726,7 +736,6 @@
                     alertBtn.innerText = I18N[currentLang].startBtn;
                 };
 
-                // TOGGLE MUTE DENGAN TOMBOL MUTE
                 muteBtn.onclick = function(e) {
                     if(e) e.stopPropagation();
                     initAudio();
