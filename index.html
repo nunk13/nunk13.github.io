@@ -27,21 +27,24 @@
         window.loadHighScoreFromFirebase = async function() {
             try {
                 const dbRef = ref(db);
-                const snapshot = await get(child(dbRef, 'highScore'));
+                const snapshot = await get(child(dbRef, 'highScoreData'));
                 if (snapshot.exists()) {
-                    return parseInt(snapshot.val()) || 0;
+                    return snapshot.val();
                 } else {
-                    return 0;
+                    return { score: 0, name: "ANON" };
                 }
             } catch (error) {
                 console.error("Gagal memuat High Score:", error);
-                return 0;
+                return { score: 0, name: "ANON" };
             }
         };
 
-        window.saveHighScoreToFirebase = async function(score) {
+        window.saveHighScoreToFirebase = async function(score, name) {
             try {
-                await set(ref(db, 'highScore'), score);
+                await set(ref(db, 'highScoreData'), {
+                    score: score,
+                    name: name
+                });
             } catch (error) {
                 console.error("Gagal menyimpan High Score:", error);
             }
@@ -126,6 +129,17 @@
             height: 100%;
         }
 
+        /* Canvas Khusus Kembang Api */
+        #fireworksCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
         #status-bar {
             height: 30px;
             background: #05050c;
@@ -179,6 +193,22 @@
             white-space: pre-line;
         }
 
+        #player-name-input {
+            width: 80%;
+            padding: 8px;
+            margin-bottom: 15px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #ff0055;
+            color: #ff0055;
+            font-family: inherit;
+            text-align: center;
+            font-size: 14px;
+            text-transform: uppercase;
+            border-radius: 4px;
+            outline: none;
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.5);
+        }
+
         .cyber-btn {
             background: transparent;
             color: #00ffff;
@@ -208,10 +238,12 @@
     
     <div id="game-area">
         <canvas id="gameCanvas"></canvas>
+        <canvas id="fireworksCanvas"></canvas>
         
         <div id="cyber-alert">
             <div id="alert-title">NEON CYBER SNAKE</div>
             <div id="alert-msg">Menghubungkan ke Database...</div>
+            <input type="text" id="player-name-input" maxlength="10" placeholder="NAMA KAMU" style="display:none;" />
             <button class="cyber-btn" id="alert-btn" style="display:none;">OK</button>
         </div>
     </div>
@@ -223,7 +255,7 @@
 
     <script>
         (function() {
-            let canvas, ctx, gameArea, muteBtn, alertBtn, alertBox;
+            let canvas, ctx, fwCanvas, fwCtx, gameArea, muteBtn, alertBtn, alertBox, nameInput;
             
             let grid = 11; 
             let margin = 4;
@@ -243,8 +275,92 @@
             let isPaused = false;
             let gameLoopTimeout = null;
             let statusAlertMode = 'START';
+            
             let highScore = 0;
+            let highScoreHolder = "ANON";
+            let isNewHighScore = false;
 
+            // --- SISTEM KEMBANG API ---
+            let fwParticles = [];
+            let fwInterval = null;
+
+            function startFireworks() {
+                if(!fwCanvas) return;
+                fwCanvas.width = gameArea.clientWidth;
+                fwCanvas.height = gameArea.clientHeight;
+                stopFireworks(); // Bersihkan efek sebelumnya jika ada
+                
+                // Buat ledakan baru secara periodik
+                fwInterval = setInterval(() => {
+                    let rx = Math.random() * fwCanvas.width;
+                    let ry = Math.random() * (fwCanvas.height * 0.6);
+                    createExplosion(rx, ry);
+                }, 300);
+
+                animateFireworks();
+            }
+
+            function stopFireworks() {
+                if(fwInterval) clearInterval(fwInterval);
+                fwParticles = [];
+                if(fwCtx && fwCanvas) fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+            }
+
+            function createExplosion(x, y) {
+                let particleCount = 40;
+                let colors = ['#00ffff', '#ff0055', '#ffaa00', '#00ff66', '#ffffff'];
+                for(let i = 0; i < particleCount; i++) {
+                    let angle = Math.random() * Math.PI * 2;
+                    let speed = Math.random() * 5 + 2;
+                    fwParticles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        alpha: 1,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        size: Math.random() * 3 + 1.5
+                    });
+                }
+            }
+
+            function animateFireworks() {
+                if(!isNewHighScore && fwParticles.length === 0) {
+                    stopFireworks();
+                    return;
+                }
+
+                fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+
+                for(let i = fwParticles.length - 1; i >= 0; i--) {
+                    let p = fwParticles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.05; // Gravitasi
+                    p.alpha -= 0.015;
+
+                    if(p.alpha <= 0) {
+                        fwParticles.splice(i, 1);
+                        continue;
+                    }
+
+                    fwCtx.save();
+                    fwCtx.globalAlpha = p.alpha;
+                    fwCtx.fillStyle = p.color;
+                    fwCtx.shadowBlur = 6;
+                    fwCtx.shadowColor = p.color;
+                    fwCtx.beginPath();
+                    fwCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    fwCtx.fill();
+                    fwCtx.restore();
+                }
+
+                if(isNewHighScore || fwParticles.length > 0) {
+                    requestAnimationFrame(animateFireworks);
+                }
+            }
+
+            // --- AUDIO GENERATOR ---
             let audioCtx = null;
             let compressorNode = null;
 
@@ -323,10 +439,13 @@
             async function init() {
                 canvas = document.getElementById("gameCanvas");
                 ctx = canvas.getContext("2d");
+                fwCanvas = document.getElementById("fireworksCanvas");
+                fwCtx = fwCanvas.getContext("2d");
                 gameArea = document.getElementById("game-area");
                 muteBtn = document.getElementById("mute-btn");
                 alertBtn = document.getElementById("alert-btn");
                 alertBox = document.getElementById("cyber-alert");
+                nameInput = document.getElementById("player-name-input");
 
                 sesuaikanUkuran();
                 setupEvents();
@@ -335,24 +454,35 @@
                     let checkInterval = setInterval(async () => {
                         if (window.loadHighScoreFromFirebase) {
                             clearInterval(checkInterval);
-                            let score = await window.loadHighScoreFromFirebase();
-                            resolve(score);
+                            let data = await window.loadHighScoreFromFirebase();
+                            resolve(data);
                         }
                     }, 100);
                 });
 
-                let timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(0), 2000));
-                highScore = await Promise.race([firebasePromise, timeoutPromise]);
+                let timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ score: 0, name: "ANON" }), 2000));
+                let hsData = await Promise.race([firebasePromise, timeoutPromise]);
 
-                document.getElementById("hi-score-box").innerText = "HI: " + highScore;
+                highScore = hsData.score || 0;
+                highScoreHolder = hsData.name || "ANON";
+
+                updateHiScoreDisplay();
                 tampilkanAlert("NEON CYBER SNAKE", "Koneksi Firebase Berhasil!\nTekan OK untuk mulai bermain!", "START");
                 alertBtn.style.display = "inline-block";
+            }
+
+            function updateHiScoreDisplay() {
+                document.getElementById("hi-score-box").innerText = "HI: " + highScoreHolder + " (" + highScore + ")";
             }
 
             function sesuaikanUkuran() {
                 if (!gameArea || !canvas) return;
                 canvas.width = gameArea.clientWidth;
                 canvas.height = gameArea.clientHeight;
+                if(fwCanvas) {
+                    fwCanvas.width = gameArea.clientWidth;
+                    fwCanvas.height = gameArea.clientHeight;
+                }
                 playWidth = Math.floor((canvas.width - (margin * 2)) / grid) * grid;
                 playHeight = Math.floor((canvas.height - (margin * 2)) / grid) * grid;
                 startX = Math.floor((playWidth / 2) / grid) * grid + margin;
@@ -366,6 +496,16 @@
                 document.getElementById("alert-title").innerText = title;
                 document.getElementById("alert-msg").innerText = message;
                 alertBtn.innerText = (mode === 'GAMEOVER') ? "MAIN LAGI" : "OK";
+                
+                if (mode === 'GAMEOVER' && isNewHighScore) {
+                    nameInput.style.display = "inline-block";
+                    nameInput.focus();
+                    startFireworks(); // Jalankan kembang api saat input nama
+                } else {
+                    nameInput.style.display = "none";
+                    stopFireworks();
+                }
+
                 alertBox.style.display = "block";
             }
 
@@ -373,6 +513,22 @@
                 alertBtn.onclick = function(e) {
                     if(e) e.stopPropagation();
                     initAudio();
+
+                    if (statusAlertMode === 'GAMEOVER' && isNewHighScore) {
+                        let playerInputName = nameInput.value.trim().toUpperCase();
+                        if (playerInputName !== "") {
+                            highScoreHolder = playerInputName;
+                        } else {
+                            highScoreHolder = "PLAYER";
+                        }
+                        if (window.saveHighScoreToFirebase) {
+                            window.saveHighScoreToFirebase(highScore, highScoreHolder);
+                        }
+                        updateHiScoreDisplay();
+                        isNewHighScore = false;
+                        stopFireworks(); // Matikan kembang api begitu game dimulai lagi
+                    }
+
                     alertBox.style.display = "none";
 
                     if (statusAlertMode === 'PAUSE') {
@@ -394,8 +550,8 @@
                     muteBtn.innerText = isMuted ? "🔇" : "🔊";
                 };
 
-                // Kontrol Keyboard (Desktop/PC)
                 window.addEventListener('keydown', function(e) {
+                    if (document.activeElement === nameInput) return;
                     initAudio();
                     if (e.code === "Space") {
                         if (!gameDihentikan && !isPaused) {
@@ -413,18 +569,17 @@
                     else if ((e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') && arah !== 'KIRI') arah = 'KANAN';
                 });
 
-                // Kontrol Touch (HP/Mobile)
                 let touchStartX = 0, touchStartY = 0;
 
                 gameArea.addEventListener('touchstart', function(e) {
                     initAudio();
-                    if (e.target === alertBtn || e.target === muteBtn) return;
+                    if (e.target === alertBtn || e.target === muteBtn || e.target === nameInput) return;
                     touchStartX = e.touches[0].clientX;
                     touchStartY = e.touches[0].clientY;
                 }, {passive: true});
 
                 gameArea.addEventListener('touchend', function(e) {
-                    if (e.target === alertBtn || e.target === muteBtn) return;
+                    if (e.target === alertBtn || e.target === muteBtn || e.target === nameInput) return;
                     if (e.changedTouches.length === 0) return;
 
                     let dx = e.changedTouches[0].clientX - touchStartX;
@@ -468,6 +623,7 @@
                 totalSkorKumulatif = 0; 
                 level = 1; 
                 kecepatan = kecepatanAwal; 
+                isNewHighScore = false;
                 perbaruiInfo(); 
                 acakMakanan();
             }
@@ -501,7 +657,13 @@
                     // TABRAKAN DIRI
                     if (ular.slice(1).some(s => s.x === kepalaBaru.x && s.y === kepalaBaru.y)) {
                         playSound('gameover');
-                        tampilkanAlert("GAME OVER", "Skor Anda: " + totalSkorKumulatif + "\nHighScore Online: " + highScore, "GAMEOVER");
+                        let msg = "Skor Anda: " + totalSkorKumulatif;
+                        if (isNewHighScore) {
+                            msg = "🎆 REKOR BARU GLOBAL! 🎆\nSkor: " + totalSkorKumulatif + "\nMasukkan nama kamu:";
+                        } else {
+                            msg += "\nHighScore: " + highScoreHolder + " (" + highScore + ")";
+                        }
+                        tampilkanAlert("GAME OVER", msg, "GAMEOVER");
                         return;
                     }
 
@@ -536,10 +698,7 @@
 
                         if (totalSkorKumulatif > highScore) {
                             highScore = totalSkorKumulatif;
-                            if (window.saveHighScoreToFirebase) {
-                                window.saveHighScoreToFirebase(highScore);
-                            }
-                            document.getElementById("hi-score-box").innerText = "HI: " + highScore;
+                            isNewHighScore = true;
                         }
 
                         perbaruiInfo();
