@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Cyber Snake v6.8 - Global Online</title>
+    <title>Neon Cyber Snake v6.9 - Global Online</title>
     
     <!-- Import Firebase SDK via CDN -->
     <script type="module">
@@ -85,7 +85,7 @@
 
         .hud-group {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
         }
 
@@ -104,7 +104,7 @@
             color: #ffaa00;
         }
 
-        #mute-btn {
+        .hud-btn {
             background: rgba(0, 255, 255, 0.1);
             border: 1px solid #00ffff;
             color: #00ffff;
@@ -129,7 +129,6 @@
             height: 100%;
         }
 
-        /* Canvas Khusus Kembang Api */
         #fireworksCanvas {
             position: absolute;
             top: 0;
@@ -160,7 +159,8 @@
             margin-top: 1px;
         }
 
-        #cyber-alert {
+        /* MODAL POPUP */
+        .modal-popup {
             display: block;
             position: absolute;
             top: 50%;
@@ -177,7 +177,7 @@
             z-index: 100;
         }
 
-        #alert-title {
+        .modal-title {
             font-size: 16px;
             font-weight: bold;
             color: #ff0055;
@@ -185,7 +185,7 @@
             letter-spacing: 1px;
         }
 
-        #alert-msg {
+        .modal-msg {
             font-size: 12px;
             color: #ffffff;
             margin-bottom: 15px;
@@ -193,35 +193,88 @@
             white-space: pre-line;
         }
 
-        #player-name-input {
-            width: 80%;
+        /* INPUT & DROPDOWN STYLING */
+        .cyber-input, .cyber-select {
+            width: 90%;
             padding: 8px;
-            margin-bottom: 15px;
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid #ff0055;
-            color: #ff0055;
+            margin-bottom: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #00ffff;
+            color: #00ffff;
             font-family: inherit;
             text-align: center;
-            font-size: 14px;
-            text-transform: uppercase;
+            font-size: 12px;
             border-radius: 4px;
             outline: none;
-            box-shadow: 0 0 10px rgba(255, 0, 85, 0.5);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+        }
+
+        .cyber-input {
+            text-transform: uppercase;
+        }
+
+        .cyber-select option {
+            background: #06060c;
+            color: #00ffff;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 11px;
+            text-align: left;
+        }
+
+        .setting-row label {
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        .setting-row input[type="range"] {
+            accent-color: #00ffff;
+            width: 50%;
+        }
+
+        .setting-row select {
+            width: 55%;
+            padding: 4px;
+            margin-bottom: 0;
+            font-size: 11px;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
         }
 
         .cyber-btn {
             background: transparent;
             color: #00ffff;
             border: 1px solid #00ffff;
-            padding: 8px 25px;
+            padding: 8px 18px;
             font-family: inherit;
             font-weight: bold;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 12px;
         }
         .cyber-btn:active {
             background: #00ffff;
             color: #06060c;
+        }
+
+        .cyber-btn-secondary {
+            border-color: #ff0055;
+            color: #ff0055;
+        }
+        .cyber-btn-secondary:active {
+            background: #ff0055;
+            color: #ffffff;
         }
     </style>
 </head>
@@ -232,7 +285,9 @@
         <div class="hud-box" id="hi-score-box">HI: LOADING...</div>
         <div class="hud-group">
             <div class="hud-box" id="skor-txt">FEED: 00/10</div>
-            <button id="mute-btn">🔊</button>
+            <!-- MUTE BUTTON & MENU SETTINGS DUA-DUANYA TERSEDIA -->
+            <button class="hud-btn" id="mute-btn">🔊</button>
+            <button class="hud-btn" id="menu-btn">⚙️</button>
         </div>
     </div>
     
@@ -240,22 +295,69 @@
         <canvas id="gameCanvas"></canvas>
         <canvas id="fireworksCanvas"></canvas>
         
-        <div id="cyber-alert">
-            <div id="alert-title">NEON CYBER SNAKE</div>
-            <div id="alert-msg">Menghubungkan ke Database...</div>
-            <input type="text" id="player-name-input" maxlength="10" placeholder="NAMA KAMU" style="display:none;" />
-            <button class="cyber-btn" id="alert-btn" style="display:none;">OK</button>
+        <!-- MODAL ALERT / START / PAUSE / GAMEOVER -->
+        <div id="cyber-alert" class="modal-popup">
+            <div id="alert-title" class="modal-title">NEON CYBER SNAKE</div>
+            <div id="alert-msg" class="modal-msg">Menghubungkan ke Database...</div>
+            
+            <input type="text" id="player-name-input" class="cyber-input" maxlength="10" placeholder="NAMA KAMU" style="display:none;" />
+            
+            <select id="start-lang-select" class="cyber-select" style="display:none;">
+                <option value="id">Bahasa Indonesia</option>
+                <option value="en">English</option>
+            </select>
+
+            <div class="btn-group">
+                <button class="cyber-btn" id="alert-btn" style="display:none;">OK</button>
+                <button class="cyber-btn cyber-btn-secondary" id="exit-btn" style="display:none;">KELUAR</button>
+            </div>
         </div>
+
+        <!-- MODAL SETTINGS MENU -->
+        <div id="settings-modal" class="modal-popup" style="display: none;">
+            <div id="settings-title" class="modal-title">SETTINGS</div>
+            
+            <div class="setting-row">
+                <label id="lbl-volume">Volume (0-10):</label>
+                <input type="range" id="vol-range" min="0" max="10" value="10">
+                <span id="vol-val" style="width: 20px; text-align: right;">10</span>
+            </div>
+
+            <div class="setting-row">
+                <label id="lbl-snake-color">Warna Ular:</label>
+                <select id="snake-color-select" class="cyber-select">
+                    <option value="green">Hijau (Default)</option>
+                    <option value="red">Merah</option>
+                    <option value="cyan">Biru Muda</option>
+                    <option value="yellow">Kuning</option>
+                </select>
+            </div>
+
+            <div class="setting-row">
+                <label id="lbl-language">Bahasa:</label>
+                <select id="settings-lang-select" class="cyber-select">
+                    <option value="id">Bahasa Indonesia</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+
+            <div class="btn-group">
+                <button class="cyber-btn" id="save-settings-btn">SIMPAN & RESUME</button>
+                <button class="cyber-btn cyber-btn-secondary" id="close-settings-btn">BATAL</button>
+            </div>
+        </div>
+
     </div>
 
     <div id="status-bar">
-        <div>TAP/SPACE TO PAUSE // SWIPE/ARROWS TO MOVE</div>
+        <div id="status-instructions">TAP/SPACE TO PAUSE // SWIPE/ARROWS TO MOVE</div>
         <div class="signature">MADE BY NUNK13</div>
     </div>
 
     <script>
         (function() {
-            let canvas, ctx, fwCanvas, fwCtx, gameArea, muteBtn, alertBtn, alertBox, nameInput;
+            let canvas, ctx, fwCanvas, fwCtx, gameArea, muteBtn, menuBtn, alertBtn, exitBtn, alertBox, nameInput, startLangSelect;
+            let settingsModal, volRange, volVal, snakeColorSelect, settingsLangSelect, saveSettingsBtn, closeSettingsBtn;
             
             let grid = 11; 
             let margin = 4;
@@ -270,7 +372,6 @@
             let level = 1;
             let kecepatanAwal = 350;
             let kecepatan = kecepatanAwal;
-            let isMuted = false;
             let gameDihentikan = true;
             let isPaused = false;
             let gameLoopTimeout = null;
@@ -278,9 +379,73 @@
             
             let highScore = 0;
             let highScoreHolder = "ANON";
+            let currentPlayerName = "";
             let isNewHighScore = false;
 
-            // --- SISTEM KEMBANG API ---
+            // --- DEFAULTS & SETTINGS ---
+            let currentLang = 'id';
+            let isMuted = false;
+            let soundVolume = 1.0; // 0.0 - 1.0
+            let lastActiveVolume = 1.0; 
+            let snakeColor = 'green'; 
+
+            const COLOR_MAP = {
+                green: { body: '#7ec850', dark: '#2e7d32' },
+                red:   { body: '#ff3344', dark: '#880011' },
+                cyan:  { body: '#00ffff', dark: '#008888' },
+                yellow:{ body: '#ffcc00', dark: '#886600' }
+            };
+
+            const I18N = {
+                id: {
+                    startTitle: "NEON CYBER SNAKE",
+                    startMsg: "Masukkan nama kamu untuk memulai permainan:",
+                    startBtn: "MULAI MAIN",
+                    pauseTitle: "GAME PAUSED",
+                    pauseMsg: "Permainan dijeda.\nTekan OK untuk melanjutkan.",
+                    gameOverTitle: "GAME OVER",
+                    newRecordMsg: "🎆 REKOR BARU GLOBAL! 🎆\nSelamat {name}!\nSkor Kamu: {score}",
+                    scoreMsg: "Skor Anda: {score}\nHighScore: {holder} ({high})",
+                    playAgainBtn: "MAIN LAGI",
+                    exitBtn: "KELUAR",
+                    instructions: "TAP/SPACE UNTUK PAUSE // SWIPE/PANAH UNTUK JALAN",
+                    settingsTitle: "PENGATURAN",
+                    lblVolume: "Volume (0-10):",
+                    lblSnakeColor: "Warna Ular:",
+                    lblLanguage: "Bahasa:",
+                    saveBtn: "SIMPAN & RESUME",
+                    cancelBtn: "BATAL",
+                    optGreen: "Hijau Neon",
+                    optRed: "Merah Cyber",
+                    optCyan: "Biru Muda",
+                    optYellow: "Kuning Cyber"
+                },
+                en: {
+                    startTitle: "NEON CYBER SNAKE",
+                    startMsg: "Enter your name to start the game:",
+                    startBtn: "START GAME",
+                    pauseTitle: "GAME PAUSED",
+                    pauseMsg: "Game is paused.\nPress OK to resume.",
+                    gameOverTitle: "GAME OVER",
+                    newRecordMsg: "🎆 NEW GLOBAL RECORD! 🎆\nCongrats {name}!\nYour Score: {score}",
+                    scoreMsg: "Your Score: {score}\nHighScore: {holder} ({high})",
+                    playAgainBtn: "PLAY AGAIN",
+                    exitBtn: "EXIT",
+                    instructions: "TAP/SPACE TO PAUSE // SWIPE/ARROWS TO MOVE",
+                    settingsTitle: "SETTINGS",
+                    lblVolume: "Volume (0-10):",
+                    lblSnakeColor: "Snake Color:",
+                    lblLanguage: "Language:",
+                    saveBtn: "SAVE & RESUME",
+                    cancelBtn: "CANCEL",
+                    optGreen: "Neon Green",
+                    optRed: "Cyber Red",
+                    optCyan: "Light Blue",
+                    optYellow: "Cyber Yellow"
+                }
+            };
+
+            // --- KEMBANG API ---
             let fwParticles = [];
             let fwInterval = null;
 
@@ -288,14 +453,13 @@
                 if(!fwCanvas) return;
                 fwCanvas.width = gameArea.clientWidth;
                 fwCanvas.height = gameArea.clientHeight;
-                stopFireworks(); // Bersihkan efek sebelumnya jika ada
+                stopFireworks();
                 
-                // Buat ledakan baru secara periodik
                 fwInterval = setInterval(() => {
                     let rx = Math.random() * fwCanvas.width;
                     let ry = Math.random() * (fwCanvas.height * 0.6);
                     createExplosion(rx, ry);
-                }, 300);
+                }, 250);
 
                 animateFireworks();
             }
@@ -307,14 +471,13 @@
             }
 
             function createExplosion(x, y) {
-                let particleCount = 40;
+                let particleCount = 45;
                 let colors = ['#00ffff', '#ff0055', '#ffaa00', '#00ff66', '#ffffff'];
                 for(let i = 0; i < particleCount; i++) {
                     let angle = Math.random() * Math.PI * 2;
                     let speed = Math.random() * 5 + 2;
                     fwParticles.push({
-                        x: x,
-                        y: y,
+                        x: x, y: y,
                         vx: Math.cos(angle) * speed,
                         vy: Math.sin(angle) * speed,
                         alpha: 1,
@@ -325,18 +488,14 @@
             }
 
             function animateFireworks() {
-                if(!isNewHighScore && fwParticles.length === 0) {
-                    stopFireworks();
-                    return;
-                }
-
+                if(fwParticles.length === 0 && !fwInterval) return;
                 fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
 
                 for(let i = fwParticles.length - 1; i >= 0; i--) {
                     let p = fwParticles[i];
                     p.x += p.vx;
                     p.y += p.vy;
-                    p.vy += 0.05; // Gravitasi
+                    p.vy += 0.05;
                     p.alpha -= 0.015;
 
                     if(p.alpha <= 0) {
@@ -355,7 +514,7 @@
                     fwCtx.restore();
                 }
 
-                if(isNewHighScore || fwParticles.length > 0) {
+                if(fwParticles.length > 0 || fwInterval) {
                     requestAnimationFrame(animateFireworks);
                 }
             }
@@ -369,14 +528,12 @@
                     const AudioContext = window.AudioContext || window.webkitAudioContext;
                     if (AudioContext) {
                         audioCtx = new AudioContext();
-                        
                         compressorNode = audioCtx.createDynamicsCompressor();
                         compressorNode.threshold.setValueAtTime(-12, audioCtx.currentTime);
                         compressorNode.knee.setValueAtTime(30, audioCtx.currentTime);
                         compressorNode.ratio.setValueAtTime(12, audioCtx.currentTime);
                         compressorNode.attack.setValueAtTime(0.003, audioCtx.currentTime);
                         compressorNode.release.setValueAtTime(0.2, audioCtx.currentTime);
-                        
                         compressorNode.connect(audioCtx.destination);
                     }
                 }
@@ -386,7 +543,7 @@
             }
 
             function playSound(type) {
-                if (isMuted) return;
+                if (isMuted || soundVolume <= 0) return;
                 initAudio();
                 if (!audioCtx) return;
 
@@ -398,14 +555,15 @@
                     osc.connect(gain);
                     gain.connect(compressorNode || audioCtx.destination);
 
+                    let baseGain = 1.0;
+
                     if (type === 'eat') {
                         osc.type = 'triangle';
                         osc.frequency.setValueAtTime(500, now);
                         osc.frequency.exponentialRampToValueAtTime(1200, now + 0.14);
-                        
-                        gain.gain.setValueAtTime(2.2, now);
+                        baseGain = 2.2;
+                        gain.gain.setValueAtTime(baseGain * soundVolume, now);
                         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
-                        
                         osc.start(now);
                         osc.stop(now + 0.14);
                     } else if (type === 'levelup') {
@@ -414,20 +572,18 @@
                         osc.frequency.setValueAtTime(659.25, now + 0.08); 
                         osc.frequency.setValueAtTime(783.99, now + 0.16); 
                         osc.frequency.setValueAtTime(1046.50, now + 0.24);
-                        
-                        gain.gain.setValueAtTime(2.5, now);
+                        baseGain = 2.5;
+                        gain.gain.setValueAtTime(baseGain * soundVolume, now);
                         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.38);
-                        
                         osc.start(now);
                         osc.stop(now + 0.38);
                     } else if (type === 'gameover') {
                         osc.type = 'sawtooth';
                         osc.frequency.setValueAtTime(400, now);
                         osc.frequency.exponentialRampToValueAtTime(60, now + 0.5);
-                        
-                        gain.gain.setValueAtTime(2.8, now);
+                        baseGain = 2.8;
+                        gain.gain.setValueAtTime(baseGain * soundVolume, now);
                         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-                        
                         osc.start(now);
                         osc.stop(now + 0.5);
                     }
@@ -443,9 +599,20 @@
                 fwCtx = fwCanvas.getContext("2d");
                 gameArea = document.getElementById("game-area");
                 muteBtn = document.getElementById("mute-btn");
+                menuBtn = document.getElementById("menu-btn");
                 alertBtn = document.getElementById("alert-btn");
+                exitBtn = document.getElementById("exit-btn");
                 alertBox = document.getElementById("cyber-alert");
                 nameInput = document.getElementById("player-name-input");
+                startLangSelect = document.getElementById("start-lang-select");
+
+                settingsModal = document.getElementById("settings-modal");
+                volRange = document.getElementById("vol-range");
+                volVal = document.getElementById("vol-val");
+                snakeColorSelect = document.getElementById("snake-color-select");
+                settingsLangSelect = document.getElementById("settings-lang-select");
+                saveSettingsBtn = document.getElementById("save-settings-btn");
+                closeSettingsBtn = document.getElementById("close-settings-btn");
 
                 sesuaikanUkuran();
                 setupEvents();
@@ -467,12 +634,30 @@
                 highScoreHolder = hsData.name || "ANON";
 
                 updateHiScoreDisplay();
-                tampilkanAlert("NEON CYBER SNAKE", "Koneksi Firebase Berhasil!\nTekan OK untuk mulai bermain!", "START");
+                updateUIByLanguage();
+                tampilkanAlert("NEON CYBER SNAKE", I18N[currentLang].startMsg, "START");
                 alertBtn.style.display = "inline-block";
             }
 
             function updateHiScoreDisplay() {
                 document.getElementById("hi-score-box").innerText = "HI: " + highScoreHolder + " (" + highScore + ")";
+            }
+
+            function updateUIByLanguage() {
+                const lang = I18N[currentLang];
+                document.getElementById("status-instructions").innerText = lang.instructions;
+                document.getElementById("settings-title").innerText = lang.settingsTitle;
+                document.getElementById("lbl-volume").innerText = lang.lblVolume;
+                document.getElementById("lbl-snake-color").innerText = lang.lblSnakeColor;
+                document.getElementById("lbl-language").innerText = lang.lblLanguage;
+                saveSettingsBtn.innerText = lang.saveBtn;
+                closeSettingsBtn.innerText = lang.cancelBtn;
+                exitBtn.innerText = lang.exitBtn;
+
+                snakeColorSelect.options[0].text = lang.optGreen;
+                snakeColorSelect.options[1].text = lang.optRed;
+                snakeColorSelect.options[2].text = lang.optCyan;
+                snakeColorSelect.options[3].text = lang.optYellow;
             }
 
             function sesuaikanUkuran() {
@@ -493,42 +678,135 @@
                 gameDihentikan = true;
                 if(gameLoopTimeout) clearTimeout(gameLoopTimeout);
                 statusAlertMode = mode;
+
                 document.getElementById("alert-title").innerText = title;
                 document.getElementById("alert-msg").innerText = message;
-                alertBtn.innerText = (mode === 'GAMEOVER') ? "MAIN LAGI" : "OK";
+                alertBtn.innerText = (mode === 'GAMEOVER') ? I18N[currentLang].playAgainBtn : I18N[currentLang].startBtn;
                 
-                if (mode === 'GAMEOVER' && isNewHighScore) {
+                if (mode === 'START') {
                     nameInput.style.display = "inline-block";
+                    startLangSelect.style.display = "inline-block";
+                    startLangSelect.value = currentLang;
                     nameInput.focus();
-                    startFireworks(); // Jalankan kembang api saat input nama
                 } else {
                     nameInput.style.display = "none";
-                    stopFireworks();
+                    startLangSelect.style.display = "none";
+                }
+
+                if (mode === 'GAMEOVER') {
+                    exitBtn.style.display = "inline-block";
+                } else {
+                    exitBtn.style.display = "none";
                 }
 
                 alertBox.style.display = "block";
             }
 
+            function openSettingsModal() {
+                if (!gameDihentikan && !isPaused) {
+                    isPaused = true;
+                }
+                volRange.value = Math.round(soundVolume * 10);
+                volVal.innerText = volRange.value;
+                snakeColorSelect.value = snakeColor;
+                settingsLangSelect.value = currentLang;
+
+                settingsModal.style.display = "block";
+            }
+
+            function closeSettingsModal() {
+                settingsModal.style.display = "none";
+            }
+
             function setupEvents() {
+                startLangSelect.onchange = function() {
+                    currentLang = startLangSelect.value;
+                    updateUIByLanguage();
+                    document.getElementById("alert-msg").innerText = I18N[currentLang].startMsg;
+                    alertBtn.innerText = I18N[currentLang].startBtn;
+                };
+
+                // TOGGLE MUTE DENGAN TOMBOL MUTE
+                muteBtn.onclick = function(e) {
+                    if(e) e.stopPropagation();
+                    initAudio();
+                    isMuted = !isMuted;
+                    
+                    if (isMuted) {
+                        muteBtn.innerText = "🔇";
+                        soundVolume = 0;
+                    } else {
+                        muteBtn.innerText = "🔊";
+                        soundVolume = (lastActiveVolume > 0) ? lastActiveVolume : 1.0;
+                    }
+                };
+
+                volRange.oninput = function() {
+                    volVal.innerText = volRange.value;
+                };
+
+                menuBtn.onclick = function(e) {
+                    if(e) e.stopPropagation();
+                    initAudio();
+                    openSettingsModal();
+                };
+
+                saveSettingsBtn.onclick = function(e) {
+                    if(e) e.stopPropagation();
+                    
+                    let prevLang = currentLang;
+                    let newVolVal = parseInt(volRange.value);
+                    
+                    soundVolume = newVolVal / 10;
+                    if (soundVolume > 0) {
+                        lastActiveVolume = soundVolume;
+                        isMuted = false;
+                        muteBtn.innerText = "🔊";
+                    } else {
+                        isMuted = true;
+                        muteBtn.innerText = "🔇";
+                    }
+
+                    snakeColor = snakeColorSelect.value;
+                    currentLang = settingsLangSelect.value;
+
+                    updateUIByLanguage();
+                    closeSettingsModal();
+
+                    if (prevLang !== currentLang) {
+                        resetGame();
+                        tampilkanAlert(I18N[currentLang].startTitle, I18N[currentLang].startMsg, "START");
+                    } else {
+                        if (alertBox.style.display === "none") {
+                            isPaused = false;
+                            gameDihentikan = false;
+                            main();
+                        }
+                    }
+                };
+
+                closeSettingsBtn.onclick = function(e) {
+                    if(e) e.stopPropagation();
+                    closeSettingsModal();
+                    if (alertBox.style.display === "none") {
+                        isPaused = false;
+                        gameDihentikan = false;
+                        main();
+                    }
+                };
+
                 alertBtn.onclick = function(e) {
                     if(e) e.stopPropagation();
                     initAudio();
 
-                    if (statusAlertMode === 'GAMEOVER' && isNewHighScore) {
+                    if (statusAlertMode === 'START') {
                         let playerInputName = nameInput.value.trim().toUpperCase();
-                        if (playerInputName !== "") {
-                            highScoreHolder = playerInputName;
-                        } else {
-                            highScoreHolder = "PLAYER";
-                        }
-                        if (window.saveHighScoreToFirebase) {
-                            window.saveHighScoreToFirebase(highScore, highScoreHolder);
-                        }
-                        updateHiScoreDisplay();
-                        isNewHighScore = false;
-                        stopFireworks(); // Matikan kembang api begitu game dimulai lagi
+                        currentPlayerName = (playerInputName !== "") ? playerInputName : "PLAYER";
+                        currentLang = startLangSelect.value;
+                        updateUIByLanguage();
                     }
 
+                    stopFireworks(); 
                     alertBox.style.display = "none";
 
                     if (statusAlertMode === 'PAUSE') {
@@ -543,20 +821,19 @@
                     }
                 };
 
-                muteBtn.onclick = function(e) {
+                exitBtn.onclick = function(e) {
                     if(e) e.stopPropagation();
-                    initAudio();
-                    isMuted = !isMuted;
-                    muteBtn.innerText = isMuted ? "🔇" : "🔊";
+                    window.location.href = "https://www.google.com";
                 };
 
                 window.addEventListener('keydown', function(e) {
-                    if (document.activeElement === nameInput) return;
+                    if (document.activeElement === nameInput || settingsModal.style.display === "block") return;
                     initAudio();
+                    
                     if (e.code === "Space") {
                         if (!gameDihentikan && !isPaused) {
                             isPaused = true;
-                            tampilkanAlert("GAME PAUSED", "Permainan dijeda.\nTekan OK untuk melanjutkan.", "PAUSE");
+                            tampilkanAlert(I18N[currentLang].pauseTitle, I18N[currentLang].pauseMsg, "PAUSE");
                         }
                         return;
                     }
@@ -573,13 +850,13 @@
 
                 gameArea.addEventListener('touchstart', function(e) {
                     initAudio();
-                    if (e.target === alertBtn || e.target === muteBtn || e.target === nameInput) return;
+                    if (settingsModal.style.display === "block" || alertBox.style.display === "block") return;
                     touchStartX = e.touches[0].clientX;
                     touchStartY = e.touches[0].clientY;
                 }, {passive: true});
 
                 gameArea.addEventListener('touchend', function(e) {
-                    if (e.target === alertBtn || e.target === muteBtn || e.target === nameInput) return;
+                    if (settingsModal.style.display === "block" || alertBox.style.display === "block") return;
                     if (e.changedTouches.length === 0) return;
 
                     let dx = e.changedTouches[0].clientX - touchStartX;
@@ -589,7 +866,7 @@
                     if (jarak < 12) {
                         if (!gameDihentikan && !isPaused) {
                             isPaused = true;
-                            tampilkanAlert("GAME PAUSED", "Permainan dijeda.\nTekan OK untuk melanjutkan.", "PAUSE");
+                            tampilkanAlert(I18N[currentLang].pauseTitle, I18N[currentLang].pauseMsg, "PAUSE");
                         }
                         return;
                     }
@@ -657,13 +934,22 @@
                     // TABRAKAN DIRI
                     if (ular.slice(1).some(s => s.x === kepalaBaru.x && s.y === kepalaBaru.y)) {
                         playSound('gameover');
-                        let msg = "Skor Anda: " + totalSkorKumulatif;
+                        
+                        const lang = I18N[currentLang];
+                        let msg = "";
+
                         if (isNewHighScore) {
-                            msg = "🎆 REKOR BARU GLOBAL! 🎆\nSkor: " + totalSkorKumulatif + "\nMasukkan nama kamu:";
+                            msg = lang.newRecordMsg
+                                    .replace("{name}", currentPlayerName)
+                                    .replace("{score}", totalSkorKumulatif);
+                            startFireworks();
                         } else {
-                            msg += "\nHighScore: " + highScoreHolder + " (" + highScore + ")";
+                            msg = lang.scoreMsg
+                                    .replace("{score}", totalSkorKumulatif)
+                                    .replace("{holder}", highScoreHolder)
+                                    .replace("{high}", highScore);
                         }
-                        tampilkanAlert("GAME OVER", msg, "GAMEOVER");
+                        tampilkanAlert(lang.gameOverTitle, msg, "GAMEOVER");
                         return;
                     }
 
@@ -698,7 +984,12 @@
 
                         if (totalSkorKumulatif > highScore) {
                             highScore = totalSkorKumulatif;
+                            highScoreHolder = currentPlayerName || "PLAYER";
                             isNewHighScore = true;
+                            if (window.saveHighScoreToFirebase) {
+                                window.saveHighScoreToFirebase(highScore, highScoreHolder);
+                            }
+                            updateHiScoreDisplay();
                         }
 
                         perbaruiInfo();
@@ -707,10 +998,8 @@
                         ular.pop();
                     }
 
-                    // CLEAR CANVAS
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     
-                    // BORDER GAME AREA
                     ctx.strokeStyle = 'rgba(0, 255, 255, 0.4)';
                     ctx.lineWidth = 2;
                     ctx.strokeRect(margin - 1, margin - 1, playWidth + 2, playHeight + 2);
@@ -727,6 +1016,8 @@
                     ctx.strokeStyle = '#000000';
                     ctx.stroke();
                     ctx.restore();
+
+                    const activeColor = COLOR_MAP[snakeColor] || COLOR_MAP.green;
 
                     // RENDERING BADAN ULAR
                     ctx.save();
@@ -768,7 +1059,7 @@
                         ctx.lineTo(p2.x - nx * w2, p2.y - ny * w2);
                         ctx.lineTo(p1.x - nx * w1, p1.y - ny * w1);
                         ctx.closePath();
-                        ctx.fillStyle = '#7ec850';
+                        ctx.fillStyle = activeColor.body;
                         ctx.fill();
                     }
 
@@ -784,13 +1075,13 @@
 
                         ctx.beginPath();
                         ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
-                        ctx.fillStyle = '#7ec850';
+                        ctx.fillStyle = activeColor.body;
                         ctx.fill();
 
                         if (i % 2 === 0 && r > 3) {
                             ctx.beginPath();
                             ctx.arc(pt.x, pt.y - (r * 0.2), r * 0.35, 0, Math.PI * 2);
-                            ctx.fillStyle = '#2e7d32';
+                            ctx.fillStyle = activeColor.dark;
                             ctx.fill();
                         }
                     }
@@ -824,7 +1115,7 @@
                         ctx.arc(0, 0, headR, mouthAngle, Math.PI * 2 - mouthAngle);
                         ctx.lineTo(headR * 0.3, 0);
                         ctx.closePath();
-                        ctx.fillStyle = '#7ec850';
+                        ctx.fillStyle = activeColor.body;
                         ctx.fill();
 
                         ctx.beginPath();
@@ -852,7 +1143,7 @@
 
                         ctx.beginPath();
                         ctx.arc(0, 0, headR, 0, Math.PI * 2);
-                        ctx.fillStyle = '#7ec850';
+                        ctx.fillStyle = activeColor.body;
                         ctx.fill();
                     }
 
