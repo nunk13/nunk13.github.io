@@ -105,7 +105,7 @@
         }
 
         .hud-btn {
-            background: rgba(0, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.1);
             border: 1px solid #00ffff;
             color: #00ffff;
             border-radius: 5px;
@@ -355,6 +355,18 @@
 
     <script>
         (function() {
+            // ==========================================================
+            // INTEGRASI MONETAG DIRECT LINK
+            // ==========================================================
+            const MONETAG_DIRECT_LINK = "https://omg10.com/4/11363147";
+
+            function triggerMonetagAd() {
+                if (MONETAG_DIRECT_LINK !== "") {
+                    window.open(MONETAG_DIRECT_LINK, '_blank');
+                }
+            }
+            // ==========================================================
+
             let canvas, ctx, fwCanvas, fwCtx, gameArea, muteBtn, menuBtn, alertBtn, exitBtn, alertBox, nameInput, startLangSelect;
             let settingsModal, volRange, volVal, snakeColorSelect, settingsLangSelect, saveSettingsBtn, closeSettingsBtn;
             
@@ -715,6 +727,8 @@
             function openSettingsModal() {
                 if (!gameDihentikan && !isPaused) {
                     isPaused = true;
+                    // PEMICU IKLAN MONETAG SAAT MEMBUKA PENGATURAN/PAUSE
+                    triggerMonetagAd();
                 }
                 volRange.value = Math.round(soundVolume * 10);
                 volVal.innerText = volRange.value;
@@ -842,6 +856,8 @@
                     if (e.code === "Space") {
                         if (!gameDihentikan && !isPaused) {
                             isPaused = true;
+                            // PEMICU IKLAN MONETAG SAAT JEDA / PAUSE VIA KEYBOARD
+                            triggerMonetagAd();
                             tampilkanAlert(I18N[currentLang].pauseTitle, I18N[currentLang].pauseMsg, "PAUSE");
                         }
                         return;
@@ -875,6 +891,8 @@
                     if (jarak < 12) {
                         if (!gameDihentikan && !isPaused) {
                             isPaused = true;
+                            // PEMICU IKLAN MONETAG SAAT JEDA / PAUSE VIA TAP SCREEN
+                            triggerMonetagAd();
                             tampilkanAlert(I18N[currentLang].pauseTitle, I18N[currentLang].pauseMsg, "PAUSE");
                         }
                         return;
@@ -940,10 +958,13 @@
                     if (kepalaBaru.y < margin) kepalaBaru.y = playHeight - grid + margin;
                     else if (kepalaBaru.y >= playHeight + margin) kepalaBaru.y = margin;
 
-                    // TABRAKAN DIRI
+                    // TABRAKAN DIRI (GAME OVER)
                     if (ular.slice(1).some(s => s.x === kepalaBaru.x && s.y === kepalaBaru.y)) {
                         playSound('gameover');
                         
+                        // PEMICU IKLAN MONETAG SAAT GAME OVER
+                        triggerMonetagAd();
+
                         const lang = I18N[currentLang];
                         let msg = "";
 
