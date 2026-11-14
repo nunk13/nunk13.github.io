@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBER_MON // Widget</title>
+    <title>Phone Indicator Widget</title>
     <style>
         :root {
             --bg-deep: #030712;
@@ -28,7 +28,7 @@
             min-height: 100vh;
         }
 
-        /* Lebar dimaksimalkan ke ukuran layar HP */
+        /* Lebar dimaksimalkan menyesuaikan layar HP */
         .widget-mini {
             width: 100%;
             max-width: 420px;
@@ -40,7 +40,7 @@
             backdrop-filter: blur(12px);
         }
 
-        /* Baris Atas: Lokasi, Suhu Cuaca, & Tombol Refresh Glow */
+        /* Baris Atas: Horizontal Sejajar (Lokasi, Cuaca, & Tombol Refresh Panah Berputar) */
         .top-bar {
             display: flex;
             justify-content: space-between;
@@ -48,78 +48,60 @@
             background: rgba(3, 7, 18, 0.75);
             border: 1px solid rgba(0, 240, 255, 0.2);
             border-radius: 10px;
-            padding: 8px 10px;
+            padding: 8px 12px;
             margin-bottom: 10px;
             font-size: 0.7rem;
+            gap: 8px;
         }
 
-        .location-weather {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-        }
-
-        .info-row {
+        .location-weather-horizontal {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 12px;
+            flex-wrap: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
             color: var(--text-main);
             font-weight: 600;
         }
 
-        /* Tombol Refresh Ikon dengan Efek Glow */
+        /* Tombol Refresh Ikon Panah Putar dengan Efek Glowing */
         .refresh-btn {
             background: rgba(0, 240, 255, 0.12);
             border: 1px solid var(--cyan-neon);
             color: var(--cyan-neon);
             border-radius: 8px;
-            width: 34px;
-            height: 34px;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem;
+            font-size: 0.9rem;
             cursor: pointer;
             box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
             transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .refresh-btn svg {
+            transition: transform 0.5s ease;
+        }
+
+        .refresh-btn:active svg {
+            transform: rotate(360deg);
         }
 
         .refresh-btn:active {
             background: var(--cyan-neon);
             color: var(--bg-deep);
             box-shadow: 0 0 14px var(--cyan-neon);
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid rgba(0, 240, 255, 0.15);
-        }
-
-        .title {
-            font-size: 0.75rem;
-            font-weight: 800;
-            letter-spacing: 0.15em;
-            color: var(--cyan-neon);
-            text-shadow: 0 0 6px rgba(0, 240, 255, 0.4);
-        }
-
-        .pulse {
-            width: 6px;
-            height: 6px;
-            background-color: var(--cyan-neon);
-            border-radius: 50%;
-            box-shadow: 0 0 6px var(--cyan-neon);
-            animation: blink 1.5s infinite;
-        }
-
-        @keyframes blink {
-            0% { opacity: 0.2; }
-            50% { opacity: 1; }
-            100% { opacity: 0.2; }
         }
 
         .grid-mini {
@@ -164,24 +146,24 @@
 <body>
 
 <div class="widget-mini">
-    <!-- Baris Atas: Nama Daerah, Suhu Cuaca, & Tombol Refresh Glow -->
+    <!-- Baris Atas: Lokasi & Suhu Cuaca Horizontal + Tombol Refresh Panah Glowing -->
     <div class="top-bar">
-        <div class="location-weather">
-            <div class="info-row">
-                <span>📍</span> <span id="loc-text">Mendeteksi Daerah...</span>
+        <div class="location-weather-horizontal">
+            <div class="info-item">
+                <span>📍</span> <span id="loc-text">Majalaya</span>
             </div>
-            <div class="info-row">
-                <span>☀️</span> <span id="weather-text">Mendeteksi Suhu...</span>
+            <div class="info-item">
+                <span>☀️</span> <span id="weather-text">--°C</span>
             </div>
         </div>
-        <button class="refresh-btn" onclick="updateAllData()" title="Refresh">🔄</button>
+        <button class="refresh-btn" onclick="updateAllData()" title="Refresh">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.63-5.05"/>
+            </svg>
+        </button>
     </div>
 
-    <div class="header">
-        <span class="title">⚡ CYBER.MON // WIDGET</span>
-        <div class="pulse"></div>
-    </div>
-
+    <!-- 4 Kotak Indikator Utama -->
     <div class="grid-mini">
         <div class="card">
             <div class="label">Baterai</div>
@@ -210,7 +192,7 @@
                 const lon = position.coords.longitude;
                 
                 try {
-                    // 1. Ambil nama daerah (Reverse Geocoding gratis)
+                    // Ambil nama daerah otomatis (seperti Majalaya)
                     const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14`);
                     const geoData = await geoRes.json();
                     if (geoData && geoData.address) {
@@ -220,24 +202,24 @@
                         document.getElementById('loc-text').innerText = "Majalaya";
                     }
 
-                    // 2. Ambil suhu cuaca luar berdasarkan koordinat GPS
+                    // Ambil suhu cuaca luar berdasarkan koordinat GPS
                     const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
                     const weatherData = await weatherRes.json();
                     if (weatherData && weatherData.current_weather) {
                         const tempCuaca = Math.round(weatherData.current_weather.temperature);
-                        document.getElementById('weather-text').innerText = `${tempCuaca}°C (Cuaca Luar)`;
+                        document.getElementById('weather-text').innerText = `${tempCuaca}°C`;
                     }
                 } catch (e) {
                     document.getElementById('loc-text').innerText = "Majalaya";
-                    document.getElementById('weather-text').innerText = "30°C (Cerah)";
+                    document.getElementById('weather-text').innerText = "30°C";
                 }
             }, () => {
-                document.getElementById('loc-text').innerText = "Majalaya, Karawang";
-                document.getElementById('weather-text').innerText = "30°C (Cerah)";
+                document.getElementById('loc-text').innerText = "Majalaya";
+                document.getElementById('weather-text').innerText = "30°C";
             }, { timeout: 10000 });
         } else {
             document.getElementById('loc-text').innerText = "Majalaya";
-            document.getElementById('weather-text').innerText = "30°C (Cerah)";
+            document.getElementById('weather-text').innerText = "30°C";
         }
     }
 
@@ -279,6 +261,14 @@
     function updateAllData() {
         updateMiniWidget();
         updateWeatherAndLocation();
+    }
+
+    updateAllData();
+</script>
+
+</body>
+</html>
+
     }
 
     updateAllData();
