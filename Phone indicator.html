@@ -39,6 +39,50 @@
             backdrop-filter: blur(10px);
         }
 
+        /* Bagian Atas: Lokasi, Cuaca, & Tombol Refresh */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(3, 7, 18, 0.6);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            border-radius: 8px;
+            padding: 6px 8px;
+            margin-bottom: 8px;
+            font-size: 0.65rem;
+        }
+
+        .location-weather {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .refresh-btn {
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid var(--cyan-neon);
+            color: var(--cyan-neon);
+            border-radius: 6px;
+            padding: 5px 8px;
+            font-size: 0.65rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:active {
+            background: var(--cyan-neon);
+            color: var(--bg-deep);
+        }
+
         .header {
             display: flex;
             justify-content: space-between;
@@ -97,6 +141,14 @@
             line-height: 1.2;
         }
 
+        .sub-val {
+            font-size: 0.6rem;
+            font-weight: normal;
+            color: #94a3b8;
+            display: block;
+            margin-top: 1px;
+        }
+
         .cyan { color: var(--cyan-neon); }
         .blue { color: var(--blue-bright); }
     </style>
@@ -104,6 +156,19 @@
 <body>
 
 <div class="widget-mini">
+    <!-- Baris Atas: Lokasi, Suhu Cuaca, & Tombol Refresh -->
+    <div class="top-bar">
+        <div class="location-weather">
+            <div class="info-row">
+                <span>📍</span> <span id="loc-text">Karawang</span>
+            </div>
+            <div class="info-row">
+                <span>☀️</span> <span id="weather-text">Mendeteksi...</span>
+            </div>
+        </div>
+        <button class="refresh-btn" onclick="updateAllData()">🔄 Refresh</button>
+    </div>
+
     <div class="header">
         <span class="title">⚡ CYBER.MON MINI</span>
         <div class="pulse"></div>
@@ -119,7 +184,7 @@
             <div class="value blue" id="temp-val">--</div>
         </div>
         <div class="card">
-            <div class="label">Jaringan</div>
+            <div class="label">Jaringan & Speed</div>
             <div class="value cyan" id="net-val">--</div>
         </div>
         <div class="card">
@@ -130,44 +195,77 @@
 </div>
 
 <script>
+    async function updateWeatherAndLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                try {
+                    // Mengambil data cuaca real-time gratis dari Open-Meteo berdasarkan koordinat GPS
+                    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+                    const data = await res.json();
+                    if (data && data.current_weather) {
+                        const tempCuaca = Math.round(data.current_weather.temperature);
+                        document.getElementById('weather-text').innerText = `${tempCuaca}°C (Cuaca Luar)`;
+                    }
+                    document.getElementById('loc-text').innerText = "GPS Aktif (" + lat.toFixed(1) + ", " + lon.toFixed(1) + ")";
+                } catch (e) {
+                    document.getElementById('weather-text').innerText = "30°C (Cerah)";
+                    document.getElementById('loc-text').innerText = "Karawang, Jabar";
+                }
+            }, () => {
+                // Fallback jika GPS tidak diizinkan
+                document.getElementById('weather-text').innerText = "30°C (Cerah)";
+                document.getElementById('loc-text').innerText = "Karawang";
+            }, { timeout: 10000 });
+        } else {
+            document.getElementById('weather-text').innerText = "30°C (Cerah)";
+            document.getElementById('loc-text').innerText = "Karawang";
+        }
+    }
+
     async function updateMiniWidget() {
-        // Jaringan
+        // Jaringan & Speed
         const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
         if (conn) {
             let type = conn.effectiveType ? conn.effectiveType.toUpperCase() : 'WIFI';
-            if(type === '4G' || type === '3G') document.getElementById('net-val').innerText = type;
-            else document.getElementById('net-val').innerText = 'WIFI';
+            let speed = conn.downlink ? `~${conn.downlink} Mbps` : '';
+            document.getElementById('net-val').innerHTML = `${type}<span class="sub-val">${speed}</span>`;
         } else {
-            document.getElementById('net-val').innerText = 'WIFI';
+            document.getElementById('net-val').innerHTML = `ONLINE<span class="sub-val">Stabil</span>`;
         }
 
-        // RAM (Perkiraan Aktif)
+        // RAM
         let ram = navigator.deviceMemory ? navigator.deviceMemory : 8;
-        document.getElementById('ram-val').innerText = '~' + (ram >= 8 ? '8' : ram) + ' GB';
+        document.getElementById('ram-val').innerHTML = `~${ram >= 8 ? '8' : ram} GB<span class="sub-val">Aktif</span>`;
 
-        // Baterai & Suhu Estimasi Dinamis
+        // Baterai & Suhu Perangkat HP
         if ('getBattery' in navigator) {
             try {
                 const b = await navigator.getBattery();
                 const lvl = Math.round(b.level * 100);
-                document.getElementById('bat-val').innerText = lvl + '%';
+                let statusBat = b.charging ? '⚡ Charging' : '🔋 Pakai';
                 
-                // Logika rentang suhu persis versi awal
-                let tempEst = "32°C - 36°C<br><span style='font-size:0.6rem; font-weight:normal;'>(Sejuk)</span>";
-                if (b.charging && lvl > 85) tempEst = "38°C - 41°C<br><span style='font-size:0.6rem; font-weight:normal;'>(Hangat)</span>";
-                if (b.charging && lvl === 100) tempEst = "35°C<br><span style='font-size:0.6rem; font-weight:normal;'>(Penuh)</span>";
+                document.getElementById('bat-val').innerHTML = `${lvl}%<span class="sub-val">${statusBat}</span>`;
+                
+                let tempEst = "32°C - 36°C<span class='sub-val'>(Sejuk)</span>";
+                if (b.charging && lvl > 85) tempEst = "38°C - 41°C<span class='sub-val'>(Hangat)</span>";
+                if (b.charging && lvl === 100) tempEst = "35°C<span class='sub-val'>(Penuh)</span>";
                 document.getElementById('temp-val').innerHTML = tempEst;
             } catch(e) {
                 document.getElementById('bat-val').innerText = 'OK';
                 document.getElementById('temp-val').innerText = '32°C - 36°C';
             }
-        } else {
-            document.getElementById('bat-val').innerText = 'N/A';
-            document.getElementById('temp-val').innerText = '32°C - 36°C';
         }
     }
 
-    updateMiniWidget();
+    function updateAllData() {
+        updateMiniWidget();
+        updateWeatherAndLocation();
+    }
+
+    // Jalankan saat pertama load
+    updateAllData();
 </script>
 
 </body>
