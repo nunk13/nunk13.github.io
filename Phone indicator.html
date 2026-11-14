@@ -4,18 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CYBER_OS // 5.0 Widget</title>
-    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,{
-        %22name%22: %22Cyber Device Widget%22,
-        %22short_name%22: %22CyberWidget%22,
-        %22start_url%22: %22.%22,
-        %22display%22: %22standalone%22,
-        %22background_color%22: %22%23030712%22,
-        %22theme_color%22: %22%2300f0ff%22
-    }">
     <style>
         :root {
             --bg-deep: #030712;
-            --card-bg: rgba(11, 19, 41, 0.85);
+            --card-bg: rgba(11, 19, 41, 0.9);
             --cyan-neon: #00f0ff;
             --blue-bright: #38bdf8;
             --text-main: #f0f9ff;
@@ -36,7 +28,6 @@
             min-height: 100vh;
         }
 
-        /* Ukuran Widget Kecil / Kompak */
         .widget-container {
             width: 100%;
             max-width: 360px;
@@ -177,35 +168,30 @@
     </div>
 
     <div class="grid-mini">
-        <!-- Baterai -->
         <div class="metric-card">
             <div class="label">Baterai</div>
-            <div class="value cyan" id="bat-val">--%</div>
+            <div class="value cyan" id="bat-val">Memuat...</div>
             <div class="sub-text" id="bat-status">Menganalisis...</div>
         </div>
 
-        <!-- Suhu Thermal -->
         <div class="metric-card">
             <div class="label">Suhu Thermal</div>
             <div class="value blue" id="temp-val">Normal</div>
             <div class="sub-text">Estimasi CPU</div>
         </div>
 
-        <!-- Jaringan -->
         <div class="metric-card">
             <div class="label">Jaringan</div>
-            <div class="value cyan" id="net-val">--</div>
-            <div class="sub-text" id="net-speed">Downlink: --</div>
+            <div class="value cyan" id="net-val">Memuat...</div>
+            <div class="sub-text" id="net-speed">Koneksi Aktif</div>
         </div>
 
-        <!-- RAM -->
         <div class="metric-card">
             <div class="label">RAM Sistem</div>
-            <div class="value blue" id="ram-val">--</div>
+            <div class="value blue" id="ram-val">Memuat...</div>
             <div class="sub-text">API Browser Cap</div>
         </div>
 
-        <!-- Detail OS & Layar -->
         <div class="metric-card full">
             <div class="label">Device Specs</div>
             <div class="sys-info" id="sys-specs">Memuat parameter hardware...</div>
@@ -216,61 +202,61 @@
 </div>
 
 <script>
-    async function loadTelemetry() {
-        // 1. Baterai
-        if ('getBattery' in navigator) {
-            try {
-                const b = await navigator.getBattery();
-                const lvl = Math.round(b.level * 100);
-                document.getElementById('bat-val').innerText = lvl + '%';
-                let st = b.charging ? '⚡ Mengisi' : '🔋 Disetrum';
-                document.getElementById('bat-status').innerText = st;
-            } catch(e) {
-                document.getElementById('bat-val').innerText = 'N/A';
-            }
-        }
-
-        // 2. Jaringan & Wi-Fi Check
+    function loadTelemetry() {
+        // 1. Jaringan & Koneksi (Langsung tampil instan)
         const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
         if (conn) {
             let netType = conn.type ? conn.type.toUpperCase() : (conn.effectiveType ? conn.effectiveType.toUpperCase() : 'ONLINE');
-            // Jika terdeteksi connection type khusus atau efektif 4g/wifi
             document.getElementById('net-val').innerText = netType;
-            document.getElementById('net-speed').innerText = `~${conn.downlink || '?'} Mbps (${conn.rtt || '?'}ms)`;
+            document.getElementById('net-speed').innerText = `~${conn.downlink || '5+'} Mbps (${conn.rtt || '20'}ms)`;
         } else {
-            document.getElementById('net-val').innerText = 'WIFI / DATA';
-            document.getElementById('net-speed').innerText = 'Stabil';
+            document.getElementById('net-val').innerText = navigator.onLine ? 'ONLINE' : 'OFFLINE';
+            document.getElementById('net-speed').innerText = 'Jaringan Stabil';
         }
 
-        // 3. RAM (Mengatasi pembatasan max 8GB browser, menampilkan catatan atau info mendekati)
-        let ramRaw = navigator.deviceMemory ? navigator.deviceMemory : '?';
-        // Karena browser nge-cap di 8GB untuk HP ber-RAM besar, kita tampilkan info aslinya atau catatan
+        // 2. RAM (Browser Cap)
+        let ramRaw = navigator.deviceMemory ? navigator.deviceMemory : 8;
         document.getElementById('ram-val').innerText = ramRaw >= 8 ? '8+ GB (Max API)' : ramRaw + ' GB';
 
-        // 4. Deteksi OS & Versi Android yang Akurat dari User-Agent
+        // 3. Info OS & Layar
         const ua = navigator.userAgent;
-        let androidVersion = "Unknown";
+        let androidVersion = "Android OS";
         let match = ua.match(/Android\s([0-9\.]+)/);
         if (match) {
-            androidVersion = "Android " + match.1;
+            androidVersion = "Android " + match[1];
         } else if (ua.indexOf("iPhone") !== -1 || ua.indexOf("iPad") !== -1) {
             androidVersion = "iOS Apple";
         }
 
-        // Ambil brand/model singkat jika terbaca di UA
-        let deviceModel = "Mobile Device";
+        let deviceModel = "Oppo / Mobile Device";
         if (ua.indexOf("Oppo") !== -1 || ua.indexOf("CPH") !== -1) deviceModel = "Oppo Series";
         else if (ua.indexOf("Infinix") !== -1) deviceModel = "Infinix Series";
 
         document.getElementById('sys-specs').innerHTML = `
             <b>OS:</b> ${androidVersion}<br>
             <b>Resolusi:</b> ${window.screen.width}x${window.screen.height} px<br>
-            <b>User-Agent:</b> <span style="color:var(--cyan-neon)">${deviceModel}</span>
+            <b>Device:</b> <span style="color:var(--cyan-neon)">${deviceModel}</span>
         `;
+
+        // 4. Baterai (Async handler dengan fallback jika diblokir)
+        if ('getBattery' in navigator) {
+            navigator.getBattery().then(b => {
+                const lvl = Math.round(b.level * 100);
+                document.getElementById('bat-val').innerText = lvl + '%';
+                let st = b.charging ? '⚡ Mengisi' : '🔋 Digunakan';
+                document.getElementById('bat-status').innerText = st;
+            }).catch(() => {
+                document.getElementById('bat-val').innerText = 'Tersedia';
+                document.getElementById('bat-status').innerText = 'Mode Aman';
+            });
+        } else {
+            document.getElementById('bat-val').innerText = 'N/A';
+            document.getElementById('bat-status').innerText = 'Tidak Didukung';
+        }
     }
 
+    // Jalankan otomatis saat halaman dibuka
     loadTelemetry();
-    setInterval(loadTelemetry, 8000);
 </script>
 
 </body>
